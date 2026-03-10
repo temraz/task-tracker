@@ -1,4 +1,4 @@
-# Classera Task Tracker
+# Task Tracker
 
 A full-stack task management application with Microsoft Azure AD authentication, quarterly organization, and user management.
 
@@ -26,11 +26,11 @@ A full-stack task management application with Microsoft Azure AD authentication,
 
 ```bash
 # Install PostgreSQL and create database
-createdb classera_tasks
+createdb tasks
 
 # Or using psql
 psql -U postgres
-CREATE DATABASE classera_tasks;
+CREATE DATABASE tasks;
 ```
 
 ### 2. Install Dependencies
@@ -57,7 +57,7 @@ NODE_ENV=development
 # Database
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=classera_tasks
+DB_NAME=tasks
 DB_USER=postgres
 DB_PASSWORD=your_password
 
@@ -75,7 +75,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASSWORD=your_app_password
-EMAIL_FROM=noreply@classera.com
+EMAIL_FROM=noreply@example.com
 
 # Frontend
 FRONTEND_URL=http://localhost:3000
@@ -87,7 +87,7 @@ FRONTEND_URL=http://localhost:3000
 2. Navigate to **Azure Active Directory** > **App registrations**
 3. Click **New registration**
 4. Set:
-   - Name: `Classera Task Tracker`
+   - Name: `Task Tracker`
    - Supported account types: `Accounts in this organizational directory only` (or as needed)
    - Redirect URI: `http://localhost:3000/auth/microsoft/callback` (Web)
 5. After creation, note:
@@ -118,7 +118,7 @@ npm run migrate
 
 This will:
 - Create all database tables
-- Create default admin user (admin@classera.com)
+- Create default admin user (admin@example.com)
 - Create quarters for the current year
 
 ### 7. Start the Server
@@ -186,7 +186,7 @@ The server will start on `http://localhost:3000`
 ## Usage
 
 1. **First Time Setup:**
-   - Default admin user is created: `admin@classera.com`
+   - Default admin user is created: `admin@example.com`
    - Login with Microsoft account that matches this email (or update in database)
 
 2. **Adding Users:**
@@ -209,7 +209,7 @@ The server will start on `http://localhost:3000`
 ### Database Connection Issues
 - Ensure PostgreSQL is running
 - Check database credentials in `.env`
-- Verify database exists: `psql -l | grep classera_tasks`
+- Verify database exists: `psql -l | grep tasks`
 
 ### Microsoft Authentication Issues
 - Verify Azure AD app registration settings
