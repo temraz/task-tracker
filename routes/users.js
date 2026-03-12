@@ -146,11 +146,16 @@ router.put('/:id', requireAuth, async (req, res) => {
       updateFields.push(`username = $${paramCount++}`);
       values.push(username || null);
     }
-    if (password && currentUser.role === 'admin') {
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updateFields.push(`password = $${paramCount++}`);
-      values.push(hashedPassword);
+    if (password) {
+      // Allow users to change their own password, or admins to change any password
+      if (currentUser.role === 'admin' || currentUser.id === userId) {
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        updateFields.push(`password = $${paramCount++}`);
+        values.push(hashedPassword);
+      } else {
+        return res.status(403).json({ error: 'Not authorized to change password for this user' });
+      }
     }
     if (department !== undefined) {
       updateFields.push(`department = $${paramCount++}`);

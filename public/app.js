@@ -85,6 +85,9 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true); // Sidebar open/close state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768); // Mobile detection
   const [breadcrumbs, setBreadcrumbs] = useState([]); // Breadcrumb navigation
+  const [showUserMenu, setShowUserMenu] = useState(false); // User dropdown menu
+  const [showChangePassword, setShowChangePassword] = useState(false); // Change password modal
+  const [changePasswordForm, setChangePasswordForm] = useState({currentPassword:"",newPassword:"",confirmPassword:""});
   
   useEffect(() => {
     const handleResize = () => {
@@ -143,6 +146,19 @@ function App() {
       loadAllUsers();
     }
   }, [view, user]);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showUserMenu && !e.target.closest('[data-user-menu]')) {
+        setShowUserMenu(false);
+      }
+    };
+    if (showUserMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showUserMenu]);
 
   // Browser history management - initialize from URL (only once on mount)
   useEffect(() => {
@@ -599,12 +615,20 @@ function App() {
       await showAlert('Please select a specific quarter to add tasks. "All Quarters" view is read-only.', 'Info');
       return;
     }
+    if (!newTask.due_date || !newTask.due_date.trim()) {
+      await showAlert('Due date is required. Please select a due date for the task.', 'Validation Error');
+      return;
+    }
+    if (!newTask.category || !newTask.category.trim()) {
+      await showAlert('Category is required. Please select a category for the task.', 'Validation Error');
+      return;
+    }
     try {
       const taskData = {
         name: newTask.name,
-        category: newTask.category || null,
+        category: newTask.category,
         priority: newTask.priority || 'Medium',
-        due_date: newTask.due_date || null,
+        due_date: newTask.due_date,
         status: newTask.status || 'Not Started',
         notes: newTask.notes || null,
         is_okr: newTask.is_okr === true ? 1 : 0,
@@ -708,6 +732,50 @@ function App() {
       await showAlert('User created successfully!', 'Success');
     } catch (err) {
       await showAlert('Error creating user: ' + err.message, 'Error');
+    }
+  };
+
+  const changePassword = async () => {
+    if (!changePasswordForm.currentPassword || !changePasswordForm.newPassword || !changePasswordForm.confirmPassword) {
+      await showAlert('All password fields are required', 'Validation Error');
+      return;
+    }
+    if (changePasswordForm.newPassword !== changePasswordForm.confirmPassword) {
+      await showAlert('New password and confirm password do not match', 'Validation Error');
+      return;
+    }
+    if (changePasswordForm.newPassword.length < 6) {
+      await showAlert('New password must be at least 6 characters long', 'Validation Error');
+      return;
+    }
+    try {
+      // First verify current password
+      const verifyRes = await apiCall('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: user.email,
+          password: changePasswordForm.currentPassword
+        })
+      });
+      
+      if (!verifyRes.success) {
+        await showAlert('Current password is incorrect', 'Validation Error');
+        return;
+      }
+      
+      // Update password
+      await apiCall(`/users/${user.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          password: changePasswordForm.newPassword
+        })
+      });
+      
+      setChangePasswordForm({currentPassword:"",newPassword:"",confirmPassword:""});
+      setShowChangePassword(false);
+      await showAlert('Password changed successfully!', 'Success');
+    } catch (err) {
+      await showAlert('Error changing password: ' + err.message, 'Error');
     }
   };
 
@@ -1237,9 +1305,78 @@ function App() {
             onChange={handleUpload} 
             style={{display:"none"}} 
           />
-          <div style={{display:"flex",alignItems:"center",gap:isMobile ? 6 : 12,paddingLeft:isMobile ? 0 : 12,borderLeft:isMobile ? "none" : "1px solid rgba(255,255,255,0.2)"}}>
-            {!isMobile && <div style={{color:"white",fontSize:13,fontWeight:600}}>{user?.name}</div>}
-            <button onClick={logout} style={{background:"transparent",color:"white",border:"1px solid white",padding:isMobile ? "4px 8px" : "5px 12px",borderRadius:6,cursor:"pointer",fontSize:isMobile ? 11 : 12}}>Logout</button>
+          <div style={{display:"flex",alignItems:"center",gap:isMobile ? 6 : 12,paddingLeft:isMobile ? 0 : 12,borderLeft:isMobile ? "none" : "1px solid rgba(255,255,255,0.2)",position:"relative"}}>
+            {!isMobile && (
+              <div style={{position:"relative"}} data-user-menu>
+                <div 
+                  onClick={()=>setShowUserMenu(!showUserMenu)}
+                  style={{color:"white",fontSize:13,fontWeight:600,cursor:"pointer",padding:"4px 8px",borderRadius:4,display:"flex",alignItems:"center",gap:4}}
+                  onMouseEnter={e=>e.target.style.background="rgba(255,255,255,0.1)"}
+                  onMouseLeave={e=>e.target.style.background="transparent"}
+                >
+                  {user?.name}
+                  <span style={{fontSize:10}}>▼</span>
+                </div>
+                {showUserMenu && (
+                  <div style={{
+                    position:"absolute",
+                    top:"100%",
+                    right:0,
+                    marginTop:8,
+                    background:"white",
+                    borderRadius:8,
+                    boxShadow:"0 4px 12px rgba(0,0,0,0.15)",
+                    minWidth:180,
+                    zIndex:1000,
+                    overflow:"hidden"
+                  }}>
+                    <button 
+                      onClick={()=>{
+                        setShowChangePassword(true);
+                        setShowUserMenu(false);
+                      }}
+                      style={{
+                        width:"100%",
+                        padding:"10px 16px",
+                        border:"none",
+                        background:"transparent",
+                        textAlign:"left",
+                        cursor:"pointer",
+                        fontSize:13,
+                        color:"#1B2A4A",
+                        fontWeight:500
+                      }}
+                      onMouseEnter={e=>e.target.style.background="#F7FAFC"}
+                      onMouseLeave={e=>e.target.style.background="transparent"}
+                    >
+                      🔒 Change Password
+                    </button>
+                    <div style={{height:1,background:"#E2E8F0",margin:"4px 0"}}></div>
+                    <button 
+                      onClick={logout}
+                      style={{
+                        width:"100%",
+                        padding:"10px 16px",
+                        border:"none",
+                        background:"transparent",
+                        textAlign:"left",
+                        cursor:"pointer",
+                        fontSize:13,
+                        color:"#DC2626",
+                        fontWeight:500
+                      }}
+                      onMouseEnter={e=>e.target.style.background="#F7FAFC"}
+                      onMouseLeave={e=>e.target.style.background="transparent"}
+                    >
+                      🚪 Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {isMobile && (
+              <button onClick={logout} style={{background:"transparent",color:"white",border:"1px solid white",padding:"4px 8px",borderRadius:6,cursor:"pointer",fontSize:isMobile ? 11 : 12}}>Logout</button>
+            )}
           </div>
         </div>
       </div>
@@ -1701,13 +1838,13 @@ function App() {
                     <select value={newTask.priority} onChange={e=>setNewTask(p=>({...p,priority:e.target.value}))} style={{padding:"7px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white"}}>
                       {Object.keys(PRIORITY_CFG).map(p=><option key={p}>{p}</option>)}
                     </select>
-                    <input type="date" value={newTask.due_date} onChange={e=>setNewTask(p=>({...p,due_date:e.target.value}))} style={{padding:"7px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12}} />
+                    <input type="date" required value={newTask.due_date} onChange={e=>setNewTask(p=>({...p,due_date:e.target.value}))} style={{padding:"7px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12}} />
                     <select value={newTask.status} onChange={e=>setNewTask(p=>({...p,status:e.target.value}))} style={{padding:"7px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white"}}>
                       {STATUS_KEYS.map(s=><option key={s}>{s}</option>)}
                     </select>
                   </div>
-                  <select value={newTask.category} onChange={e=>setNewTask(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"7px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white",marginBottom:10}}>
-                    <option value="">Category...</option>
+                  <select required value={newTask.category} onChange={e=>setNewTask(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"7px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white",marginBottom:10}}>
+                    <option value="">Category *</option>
                     {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
                   </select>
                   <input placeholder="Notes (optional)" value={newTask.notes} onChange={e=>setNewTask(p=>({...p,notes:e.target.value}))} style={{width:"100%",padding:"7px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,marginBottom:10}} />
@@ -1891,9 +2028,14 @@ function App() {
             {view==="dashboard" && !selectedOwner && (
               <div style={{display:"flex",flexDirection:isMobile ? "column" : "row",gap:isMobile ? 16 : 20,alignItems:"flex-start"}}>
                 <div style={{flex:1,minWidth:0,width:isMobile ? "100%" : "auto"}}>
-                  <div style={{background:"white",borderRadius:12,padding:isMobile ? 16 : 24,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+                  <div style={{background:"white",borderRadius:12,padding:isMobile ? 16 : 24,boxShadow:"0 1px 4px rgba(0,0,0,0.08)",marginBottom:isMobile ? 12 : 16}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
                       <h2 style={{margin:0,fontSize:isMobile ? 13 : 15,fontWeight:800,color:"#1B2A4A",textTransform:"uppercase"}}>Team Overview</h2>
+                      <select value={filterOKR} onChange={e=>setFilterOKR(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white"}}>
+                        <option value="All">All Tasks</option>
+                        <option value="Yes">OKR Tasks</option>
+                        <option value="No">Non-OKR Tasks</option>
+                      </select>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:isMobile ? "1fr" : "repeat(2,1fr)",gap:isMobile ? 10 : 12}}>
                       {users.map((o,i) => {
@@ -2451,15 +2593,15 @@ function App() {
                         <select value={newTask.priority} onChange={e=>setNewTask(p=>({...p,priority:e.target.value}))} style={{padding:"7px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white"}}>
                           {Object.keys(PRIORITY_CFG).map(p=><option key={p}>{p}</option>)}
                         </select>
-                        <input type="date" value={newTask.due_date} onChange={e=>setNewTask(p=>({...p,due_date:e.target.value}))} style={{padding:"7px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12}} />
+                        <input type="date" required value={newTask.due_date} onChange={e=>setNewTask(p=>({...p,due_date:e.target.value}))} style={{padding:"7px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12}} />
                         <select value={newTask.status} onChange={e=>setNewTask(p=>({...p,status:e.target.value}))} style={{padding:"7px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white"}}>
                           {STATUS_KEYS.map(s=><option key={s}>{s}</option>)}
                         </select>
                       </div>
-                      <select value={newTask.category} onChange={e=>setNewTask(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"7px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white",marginBottom:10}}>
-                        <option value="">Category...</option>
-                        {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
-                      </select>
+                      <select required value={newTask.category} onChange={e=>setNewTask(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"7px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white",marginBottom:10}}>
+                        <option value="">Category *</option>
+                          {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+                        </select>
                       <input placeholder="Notes (optional)" value={newTask.notes} onChange={e=>setNewTask(p=>({...p,notes:e.target.value}))} style={{width:"100%",padding:"7px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,marginBottom:10}} />
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                         <input 
@@ -2682,6 +2824,42 @@ function App() {
               <div style={{display:"flex",gap:10,marginTop:10}}>
                 <button onClick={updateUser} style={{flex:1,background:"#1B2A4A",color:"white",border:"none",padding:"10px 20px",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>Save Changes</button>
                 <button onClick={()=>setEditingUser(null)} style={{background:"#E2E8F0",color:"#4A5568",border:"none",padding:"10px 20px",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CHANGE PASSWORD MODAL */}
+      {showChangePassword && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowChangePassword(false)}>
+          <div style={{background:"white",borderRadius:16,padding:32,width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24}}>
+              <h2 style={{margin:0,fontSize:16,fontWeight:800,color:"#1B2A4A"}}>Change Password</h2>
+              <button onClick={()=>{setShowChangePassword(false);setChangePasswordForm({currentPassword:"",newPassword:"",confirmPassword:""});}} style={{background:"#F1F5F9",border:"none",borderRadius:8,width:32,height:32,cursor:"pointer",fontSize:16,color:"#64748B"}}>✕</button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#4A5568",textTransform:"uppercase",display:"block",marginBottom:5}}>Current Password *</label>
+                <input type="password" value={changePasswordForm.currentPassword} onChange={e=>setChangePasswordForm(p=>({...p,currentPassword:e.target.value}))}
+                  placeholder="Enter current password"
+                  style={{width:"100%",padding:"9px 12px",border:"1px solid #CBD5E0",borderRadius:8,fontSize:13}} />
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#4A5568",textTransform:"uppercase",display:"block",marginBottom:5}}>New Password *</label>
+                <input type="password" value={changePasswordForm.newPassword} onChange={e=>setChangePasswordForm(p=>({...p,newPassword:e.target.value}))}
+                  placeholder="Enter new password (min 6 characters)"
+                  style={{width:"100%",padding:"9px 12px",border:"1px solid #CBD5E0",borderRadius:8,fontSize:13}} />
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#4A5568",textTransform:"uppercase",display:"block",marginBottom:5}}>Confirm New Password *</label>
+                <input type="password" value={changePasswordForm.confirmPassword} onChange={e=>setChangePasswordForm(p=>({...p,confirmPassword:e.target.value}))}
+                  placeholder="Confirm new password"
+                  style={{width:"100%",padding:"9px 12px",border:"1px solid #CBD5E0",borderRadius:8,fontSize:13}} />
+              </div>
+              <div style={{display:"flex",gap:10,marginTop:10}}>
+                <button onClick={changePassword} style={{flex:1,background:"#1B2A4A",color:"white",border:"none",padding:"10px 20px",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>Change Password</button>
+                <button onClick={()=>{setShowChangePassword(false);setChangePasswordForm({currentPassword:"",newPassword:"",confirmPassword:""});}} style={{background:"#E2E8F0",color:"#4A5568",border:"none",padding:"10px 20px",borderRadius:8,cursor:"pointer",fontSize:13}}>Cancel</button>
               </div>
             </div>
           </div>
