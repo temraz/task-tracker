@@ -1,0 +1,32 @@
+# Copy this file to terraform.tfvars and fill in your values
+# terraform.tfvars is in .gitignore and won't be committed
+
+aws_region = "us-east-1"  # Change to your preferred region
+
+instance_type = "t2.micro"  # Free tier eligible
+
+# REQUIRED: You need to create a key pair in AWS EC2 console first
+# Or use: aws ec2 import-key-pair
+key_pair_name = "task-manager-key"
+
+# REQUIRED: Strong password for PostgreSQL
+db_password = "your-strong-database-password-here"
+
+# REQUIRED: Generate with: openssl rand -base64 32
+session_secret = "your-session-secret-here"
+
+# Optional: Allocate static IP (costs money if instance stops)
+allocate_elastic_ip = false
+
+# Optional: Microsoft Azure AD credentials
+# microsoft_client_id = ""
+# microsoft_client_secret = ""
+# microsoft_tenant_id = ""
+
+# Optional: Email configuration
+# email_host = "smtp.gmail.com"
+# email_user = "your-email@gmail.com"
+# email_password = "your-app-password"
+
+# Optional: Frontend URL
+# frontend_url = "https://yourdomain.com"

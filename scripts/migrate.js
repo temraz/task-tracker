@@ -55,7 +55,95 @@ async function migrate() {
       console.log('✅ Password migration completed');
     }
     
-    console.log('✅ Database migrations completed');
+    // Run OKR and indexes migration
+    console.log('🔄 Running OKR and indexes migration...');
+    const okrMigrationPath = path.join(__dirname, '../database/migration_add_okr_and_indexes.sql');
+    let okrStatements = [];
+    
+    if (fs.existsSync(okrMigrationPath)) {
+      console.log('📄 Reading migration file...');
+      const okrMigration = fs.readFileSync(okrMigrationPath, 'utf8');
+      okrStatements = okrMigration
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--'));
+    } else {
+      console.log('📝 Using inline migration SQL...');
+      // If file doesn't exist, use inline SQL
+      okrStatements = [
+        'ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_okr BOOLEAN DEFAULT false',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_category ON tasks(category)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_performance ON tasks(performance)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_is_okr ON tasks(is_okr)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_name_lower ON tasks(LOWER(name))',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_quarter_status ON tasks(quarter_id, status)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_quarter_priority ON tasks(quarter_id, priority)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_quarter_category ON tasks(quarter_id, category)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_quarter_is_okr ON tasks(quarter_id, is_okr)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_owner_status ON tasks(owner_id, status)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_owner_priority ON tasks(owner_id, priority)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_owner_category ON tasks(owner_id, category)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_owner_is_okr ON tasks(owner_id, is_okr)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_status_priority ON tasks(status, priority)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_category_priority ON tasks(category, priority)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_performance_status ON tasks(performance, status)',
+        'CREATE INDEX IF NOT EXISTS idx_tasks_due_date_status ON tasks(due_date, status) WHERE due_date IS NOT NULL'
+      ];
+    }
+    
+    console.log(`📊 Executing ${okrStatements.length} migration statements...`);
+    for (const statement of okrStatements) {
+      if (statement) {
+        try {
+          await pool.query(statement);
+        } catch (error) {
+          if (!error.message.includes('already exists') && error.code !== '42P07' && !error.message.includes('duplicate column') && !error.message.includes('duplicate key')) {
+            console.error('❌ OKR migration error:', error.message);
+            console.error('Statement:', statement.substring(0, 100));
+          }
+        }
+      }
+    }
+    console.log('✅ OKR and indexes migration completed');
+    
+    // Run OKR to INTEGER migration
+    const okrIntMigrationPath = path.join(__dirname, '../database/migration_change_okr_to_int.sql');
+    if (fs.existsSync(okrIntMigrationPath)) {
+      console.log('🔄 Running OKR to INTEGER migration...');
+      const okrIntMigration = fs.readFileSync(okrIntMigrationPath, 'utf8');
+      const okrIntStatements = okrIntMigration
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--'));
+      
+      for (const statement of okrIntStatements) {
+        if (statement) {
+          try {
+            await pool.query(statement);
+          } catch (error) {
+            if (!error.message.includes('does not exist') && !error.message.includes('column') && !error.code) {
+              console.error('OKR INT migration error:', error.message);
+            }
+          }
+        }
+      }
+      console.log('✅ OKR to INTEGER migration completed');
+    } else {
+      // Inline migration if file doesn't exist
+      console.log('🔄 Running inline OKR to INTEGER migration...');
+      try {
+        await pool.query('ALTER TABLE tasks ALTER COLUMN is_okr TYPE INTEGER USING CASE WHEN is_okr = true THEN 1 ELSE 0 END');
+        await pool.query('ALTER TABLE tasks ALTER COLUMN is_okr SET DEFAULT 0');
+        console.log('✅ OKR to INTEGER migration completed');
+      } catch (error) {
+        if (!error.message.includes('does not exist') && !error.message.includes('column')) {
+          console.error('OKR INT migration error:', error.message);
+        }
+      }
+    }
+    
+    console.log('✅ All database migrations completed');
     
     // Create default admin user if not exists
     const adminCheck = await pool.query('SELECT id FROM users WHERE email = $1', ['admin@classera.com']);

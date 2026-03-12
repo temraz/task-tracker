@@ -6,3 +6,6 @@ dist/
 build/
 coverage/
 .nyc_output/
+# Temporary Excel files
+~$*.xlsx
+~$*.xls
