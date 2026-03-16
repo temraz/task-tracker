@@ -2537,8 +2537,17 @@ function App() {
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                     <thead>
                       <tr style={{background:"#F7FAFC"}}>
-                        {["Task","Owner","Category","Priority","Due","Status","Performance",""].map((h,i)=>(
-                          <th key={i} style={{padding:"9px 10px",textAlign:"left",fontWeight:700,color:"#4A5568",fontSize:11,textTransform:"uppercase",borderBottom:"2px solid #E2E8F0"}}>{h}</th>
+                        {["Task","Owner","Category","Priority","Due","OKR Task","Status","Performance",""].map((h,i)=>(
+                          <th key={i} style={{
+                            padding:"9px 10px",
+                            textAlign:"left",
+                            fontWeight:700,
+                            color:"#4A5568",
+                            fontSize:11,
+                            textTransform:"uppercase",
+                            borderBottom:"2px solid #E2E8F0",
+                            ...(h === "Due" ? {minWidth:"140px",width:"140px"} : h === "OKR Task" ? {textAlign:"center",minWidth:"80px"} : {})
+                          }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -2551,8 +2560,15 @@ function App() {
                             <td style={{padding:"8px 10px"}}><span onClick={()=>navTo("owner",o?.id)} style={{cursor:"pointer",color:"#1B2A4A",fontWeight:600,fontSize:11}}>{o?.name||"—"}</span></td>
                             <td style={{padding:"8px 10px",color:"#718096",fontSize:11}}>{t.category||"—"}</td>
                             <td style={{padding:"8px 10px"}}><PriorityBadge priority={t.priority} /></td>
-                            <td style={{padding:"8px 10px",fontSize:11}}>
+                            <td style={{padding:"8px 10px",fontSize:11,minWidth:"140px",width:"140px"}}>
                               {t.due_date ? <span style={{color:isOverdue(t)?"#DC2626":"#718096",fontWeight:isOverdue(t)?700:400}}>{formatDate(t.due_date)}{isOverdue(t)&&` (+${daysOverdue(t)}d)`}</span> : "—"}
+                            </td>
+                            <td style={{padding:"8px 10px",textAlign:"center"}}>
+                              {(t.is_okr === 1 || t.is_okr === true) ? (
+                                <span style={{color:"#166534",fontSize:16,fontWeight:700}}>✓</span>
+                              ) : (
+                                <span style={{color:"#CBD5E0",fontSize:14}}>—</span>
+                              )}
                             </td>
                             <td style={{padding:"8px 10px"}}>
                               <select value={t.status} onChange={e=>updateTask(t.id,"status",e.target.value)} style={{border:"1px solid #E2E8F0",borderRadius:6,padding:"3px 6px",fontSize:11,background:"white",cursor:"pointer"}}>
