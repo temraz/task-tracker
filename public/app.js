@@ -2202,8 +2202,17 @@ function App() {
                       <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                         <thead>
                           <tr style={{background:"#F7FAFC"}}>
-                            {["#","TASK","OWNER","CATEGORY","PRIORITY","DUE","DAYS LATE","STATUS",""].map((h,i)=>(
-                              <th key={i} style={{padding:"9px 10px",textAlign:"left",fontWeight:700,color:"#4A5568",fontSize:11,textTransform:"uppercase",borderBottom:"2px solid #E2E8F0"}}>{h}</th>
+                            {["#","TASK","OWNER","CATEGORY","PRIORITY","DUE","OKR Task","DAYS LATE","STATUS",""].map((h,i)=>(
+                              <th key={i} style={{
+                                padding:"9px 10px",
+                                textAlign:"left",
+                                fontWeight:700,
+                                color:"#4A5568",
+                                fontSize:11,
+                                textTransform:"uppercase",
+                                borderBottom:"2px solid #E2E8F0",
+                                ...(h === "DUE" ? {minWidth:"140px",width:"140px"} : h === "OKR Task" ? {textAlign:"center",minWidth:"80px"} : {})
+                              }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
@@ -2217,7 +2226,14 @@ function App() {
                                 <td style={{padding:"9px 10px",color:"#1B2A4A",fontWeight:600}}>{owner?.name||"—"}</td>
                                 <td style={{padding:"9px 10px",color:"#718096",fontSize:11}}>{t.category||"—"}</td>
                                 <td style={{padding:"9px 10px"}}><PriorityBadge priority={t.priority} /></td>
-                                <td style={{padding:"9px 10px",color:"#DC2626",fontWeight:700}}>{formatDate(t.due_date) || "—"}</td>
+                                <td style={{padding:"9px 10px",color:"#DC2626",fontWeight:700,minWidth:"140px",width:"140px"}}>{formatDate(t.due_date) || "—"}</td>
+                                <td style={{padding:"9px 10px",textAlign:"center"}}>
+                                  {(t.is_okr === 1 || t.is_okr === true) ? (
+                                    <span style={{color:"#166534",fontSize:16,fontWeight:700}}>✓</span>
+                                  ) : (
+                                    <span style={{color:"#CBD5E0",fontSize:14}}>—</span>
+                                  )}
+                                </td>
                                 <td style={{padding:"9px 10px",color:"#DC2626",fontWeight:700}}>+{daysOverdue(t)}d</td>
                                 <td style={{padding:"9px 10px"}}>
                                   <select value={t.status} onChange={async(e)=>{
