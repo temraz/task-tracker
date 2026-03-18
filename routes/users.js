@@ -190,14 +190,62 @@ router.put('/:id', requireAuth, async (req, res) => {
 // Delete user (admin only)
 router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [req.params.id]);
+    const userId = parseInt(req.params.id);
+
+    // Check if user exists
+    const userCheck = await pool.query('SELECT id, name FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if there are any tasks created by this user
+    const tasksCreatedCheck = await pool.query(
+      'SELECT COUNT(*) as count FROM tasks WHERE created_by = $1',
+      [userId]
+    );
+    const tasksCreatedCount = parseInt(tasksCreatedCheck.rows[0].count);
+
+    if (tasksCreatedCount > 0) {
+      return res.status(400).json({ 
+        error: `Cannot delete user. This user has created ${tasksCreatedCount} task(s). Please reassign or delete these tasks first.` 
+      });
+    }
+
+    // Check if there are any tasks owned by this user (optional check for better UX)
+    const tasksOwnedCheck = await pool.query(
+      'SELECT COUNT(*) as count FROM tasks WHERE owner_id = $1',
+      [userId]
+    );
+    const tasksOwnedCount = parseInt(tasksOwnedCheck.rows[0].count);
+
+    if (tasksOwnedCount > 0) {
+      // Tasks will have owner_id set to NULL due to ON DELETE SET NULL, but we warn the admin
+      console.log(`Warning: User ${userId} has ${tasksOwnedCount} owned task(s) that will be unassigned upon deletion.`);
+    }
+
+    // Delete the user
+    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [userId]);
+    
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.json({ success: true, message: 'User deleted successfully' });
+
+    res.json({ 
+      success: true, 
+      message: 'User deleted successfully',
+      warning: tasksOwnedCount > 0 ? `${tasksOwnedCount} task(s) were unassigned from this user.` : null
+    });
   } catch (error) {
     console.error('Error deleting user:', error);
-    res.status(500).json({ error: 'Failed to delete user' });
+    
+    // Provide more specific error messages
+    if (error.code === '23503') { // Foreign key constraint violation
+      return res.status(400).json({ 
+        error: 'Cannot delete user. This user has associated records that prevent deletion.' 
+      });
+    }
+    
+    res.status(500).json({ error: error.message || 'Failed to delete user' });
   }
 });
 
