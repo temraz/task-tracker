@@ -191,10 +191,12 @@ router.put('/:id', requireAuth, async (req, res) => {
 router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
+    console.log(`[DELETE USER] Attempting to delete user ID: ${userId}`);
 
     // Check if user exists
     const userCheck = await pool.query('SELECT id, name FROM users WHERE id = $1', [userId]);
     if (userCheck.rows.length === 0) {
+      console.log(`[DELETE USER] User ${userId} not found`);
       return res.status(404).json({ error: 'User not found' });
     }
 
@@ -204,12 +206,7 @@ router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
       [userId]
     );
     const tasksCreatedCount = parseInt(tasksCreatedCheck.rows[0].count);
-
-    if (tasksCreatedCount > 0) {
-      return res.status(400).json({ 
-        error: `Cannot delete user. This user has created ${tasksCreatedCount} task(s). Please reassign or delete these tasks first.` 
-      });
-    }
+    console.log(`[DELETE USER] User ${userId} has created ${tasksCreatedCount} task(s)`);
 
     // Check if there are any tasks owned by this user (optional check for better UX)
     const tasksOwnedCheck = await pool.query(
@@ -217,31 +214,49 @@ router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
       [userId]
     );
     const tasksOwnedCount = parseInt(tasksOwnedCheck.rows[0].count);
+    console.log(`[DELETE USER] User ${userId} owns ${tasksOwnedCount} task(s)`);
 
     if (tasksOwnedCount > 0) {
       // Tasks will have owner_id set to NULL due to ON DELETE SET NULL, but we warn the admin
-      console.log(`Warning: User ${userId} has ${tasksOwnedCount} owned task(s) that will be unassigned upon deletion.`);
+      console.log(`[DELETE USER] Warning: User ${userId} has ${tasksOwnedCount} owned task(s) that will be unassigned upon deletion.`);
+    }
+
+    // Update tasks to set created_by to NULL before deleting the user
+    // This is necessary because the foreign key constraint doesn't have ON DELETE SET NULL
+    if (tasksCreatedCount > 0) {
+      console.log(`[DELETE USER] Updating ${tasksCreatedCount} task(s) to remove created_by reference`);
+      await pool.query(
+        'UPDATE tasks SET created_by = NULL WHERE created_by = $1',
+        [userId]
+      );
+      console.log(`[DELETE USER] Successfully updated tasks`);
     }
 
     // Delete the user
+    console.log(`[DELETE USER] Proceeding with deletion of user ${userId}`);
     const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [userId]);
     
     if (result.rows.length === 0) {
+      console.log(`[DELETE USER] User ${userId} not found after deletion attempt`);
       return res.status(404).json({ error: 'User not found' });
     }
 
+    console.log(`[DELETE USER] Successfully deleted user ${userId}`);
     res.json({ 
       success: true, 
       message: 'User deleted successfully',
       warning: tasksOwnedCount > 0 ? `${tasksOwnedCount} task(s) were unassigned from this user.` : null
     });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    console.error('[DELETE USER] Error deleting user:', error);
+    console.error('[DELETE USER] Error code:', error.code);
+    console.error('[DELETE USER] Error message:', error.message);
+    console.error('[DELETE USER] Error detail:', error.detail);
     
     // Provide more specific error messages
     if (error.code === '23503') { // Foreign key constraint violation
       return res.status(400).json({ 
-        error: 'Cannot delete user. This user has associated records that prevent deletion.' 
+        error: 'Cannot delete user. This user has associated records that prevent deletion. Please try again or contact support if the issue persists.' 
       });
     }
     
