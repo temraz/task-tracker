@@ -2849,8 +2849,17 @@ function App() {
                     <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                       <thead>
                         <tr style={{background:"#F7FAFC"}}>
-                          {["Task","Category","Priority","Due","Status","Performance","Notes",""].map((h,i)=>(
-                            <th key={i} style={{padding:"9px 10px",textAlign:"left",fontWeight:700,color:"#4A5568",fontSize:11,textTransform:"uppercase",borderBottom:"2px solid #E2E8F0"}}>{h}</th>
+                          {["Task","Category","Priority","Due","OKR Task","Status","Performance","Notes",""].map((h,i)=>(
+                            <th key={i} style={{
+                              padding:"9px 10px",
+                              textAlign:"left",
+                              fontWeight:700,
+                              color:"#4A5568",
+                              fontSize:11,
+                              textTransform:"uppercase",
+                              borderBottom:"2px solid #E2E8F0",
+                              ...(h === "OKR Task" ? {textAlign:"center",minWidth:"80px"} : {})
+                            }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -2863,6 +2872,13 @@ function App() {
                               <td style={{padding:"9px 10px"}}><PriorityBadge priority={t.priority} /></td>
                               <td style={{padding:"9px 10px",fontSize:11}}>
                                 {t.due_date ? <span style={{color:isOverdue(t)?"#DC2626":"#718096",fontWeight:isOverdue(t)?700:400}}>{formatDate(t.due_date)}{isOverdue(t)&&` (+${daysOverdue(t)}d)`}</span> : "—"}
+                              </td>
+                              <td style={{padding:"9px 10px",textAlign:"center"}}>
+                                {(t.is_okr === 1 || t.is_okr === true) ? (
+                                  <span style={{color:"#166534",fontSize:16,fontWeight:700}}>✓</span>
+                                ) : (
+                                  <span style={{color:"#CBD5E0",fontSize:14}}>—</span>
+                                )}
                               </td>
                               <td style={{padding:"9px 10px"}}>
                                 <select value={t.status} onChange={e=>updateTask(t.id,"status",e.target.value)} style={{border:"1px solid #E2E8F0",borderRadius:6,padding:"3px 6px",fontSize:11,background:"white"}}>
@@ -2893,7 +2909,7 @@ function App() {
                             </tr>
                             {activeCommentTask===t.id && (
                               <tr style={{background:"#F8FAFF"}}>
-                                <td colSpan={8} style={{padding:"12px 16px",borderBottom:"1px solid #E2E8F0"}}>
+                                <td colSpan={9} style={{padding:"12px 16px",borderBottom:"1px solid #E2E8F0"}}>
                                   <div style={{fontSize:11,fontWeight:700,color:"#1B2A4A",marginBottom:8}}>💬 Comments</div>
                                   {(comments[t.id]||[]).map((c,ci)=>(
                                     <div key={ci} style={{background:"white",border:"1px solid #E2E8F0",borderRadius:8,padding:"8px 12px",marginBottom:6}}>
