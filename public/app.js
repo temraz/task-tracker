@@ -54,6 +54,8 @@ function App() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterPriority, setFilterPriority] = useState("All");
   const [filterCategory, setFilterCategory] = useState("All");
+  const [filterPerformance, setFilterPerformance] = useState("All");
+  const [filterDue, setFilterDue] = useState("All");
   const [filterOKR, setFilterOKR] = useState("All");
   const [searchQ, setSearchQ] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -138,7 +140,7 @@ function App() {
     if (selectedQuarter) {
       loadTasks();
     }
-  }, [selectedQuarter, filterStatus, filterPriority, filterCategory, filterOKR, searchQ]);
+  }, [selectedQuarter, filterStatus, filterPriority, filterCategory, filterPerformance, filterDue, filterOKR, searchQ]);
 
   // Load all users when admin views users page
   useEffect(() => {
@@ -547,11 +549,59 @@ function App() {
 
   const filteredTasks = useMemo(() => {
     let t = selectedOwner ? tasks.filter(x=>x.owner_id===selectedOwner) : tasks;
+    
+    // Apply filters
+    if (filterCategory !== "All") {
+      t = t.filter(x => x.category === filterCategory);
+    }
+    if (filterPriority !== "All") {
+      t = t.filter(x => x.priority === filterPriority);
+    }
+    if (filterStatus !== "All") {
+      t = t.filter(x => x.status === filterStatus);
+    }
+    if (filterPerformance !== "All") {
+      if (filterPerformance === "Rated") {
+        t = t.filter(x => x.performance && x.performance !== "");
+      } else {
+        t = t.filter(x => x.performance === filterPerformance);
+      }
+    }
+    if (filterDue !== "All") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + (7 - today.getDay()));
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      endOfMonth.setHours(23, 59, 59, 999);
+      
+      if (filterDue === "Overdue") {
+        t = t.filter(x => isOverdue(x));
+      } else if (filterDue === "This Week") {
+        t = t.filter(x => {
+          if (!x.due_date) return false;
+          const dueDate = new Date(x.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return dueDate >= today && dueDate <= endOfWeek;
+        });
+      } else if (filterDue === "This Month") {
+        t = t.filter(x => {
+          if (!x.due_date) return false;
+          const dueDate = new Date(x.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return dueDate >= today && dueDate <= endOfMonth;
+        });
+      }
+    }
     if (filterOKR !== "All") {
       t = t.filter(x => filterOKR === "Yes" ? (x.is_okr === true || x.is_okr === 1) : (x.is_okr !== true && x.is_okr !== 1));
     }
+    if (searchQ) {
+      t = t.filter(x => x.name.toLowerCase().includes(searchQ.toLowerCase()));
+    }
+    
     return [...t].sort((a,b)=>(isOverdue(b)?1:0)-(isOverdue(a)?1:0));
-  }, [tasks, selectedOwner, filterOKR]);
+  }, [tasks, selectedOwner, filterCategory, filterPriority, filterStatus, filterPerformance, filterDue, filterOKR, searchQ]);
 
   const overdueTasks = useMemo(() => {
     let filtered = tasks.filter(t=>isOverdue(t));
@@ -2633,6 +2683,34 @@ function App() {
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
                     <h2 style={{margin:0,fontSize:isMobile ? 13 : 15,fontWeight:800,color:"#1B2A4A"}}>Tasks</h2>
                     <button onClick={()=>setShowAdd(true)} style={{background:"#C9A84C",color:"#1B2A4A",border:"none",padding:isMobile ? "6px 12px" : "7px 16px",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:isMobile ? 12 : 13}}>+ Add Task</button>
+                  </div>
+                  <div style={{display:"flex",gap:isMobile ? 6 : 8,flexWrap:"wrap",width:"100%",marginBottom:16}}>
+                    <input placeholder="Search..." value={searchQ} onChange={e=>setSearchQ(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,width:isMobile ? "100%" : 160,flex:isMobile ? "1 1 100%" : "none"}} />
+                    <select value={filterCategory} onChange={e=>setFilterCategory(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
+                      <option value="All">All Categories</option>
+                      {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <select value={filterPriority} onChange={e=>setFilterPriority(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
+                      <option>All</option>
+                      {Object.keys(PRIORITY_CFG).map(p=><option key={p}>{p}</option>)}
+                    </select>
+                    <select value={filterDue} onChange={e=>setFilterDue(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
+                      <option value="All">All Due Dates</option>
+                      <option value="Overdue">Overdue</option>
+                      <option value="This Week">This Week</option>
+                      <option value="This Month">This Month</option>
+                    </select>
+                    <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
+                      <option>All</option>
+                      {STATUS_KEYS.map(s=><option key={s}>{s}</option>)}
+                    </select>
+                    <select value={filterPerformance} onChange={e=>setFilterPerformance(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
+                      <option value="All">All Performance</option>
+                      <option value="Rated">Rated</option>
+                      <option value="green">🟢 On Track</option>
+                      <option value="yellow">🟡 At Risk</option>
+                      <option value="red">🔴 Off Track</option>
+                    </select>
                   </div>
                   {showAdd && (
                     <div style={{background:"#F7FAFC",border:"1px solid #E2E8F0",borderRadius:10,padding:16,marginBottom:16}}>
