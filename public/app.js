@@ -2,7 +2,7 @@ const { useState, useMemo, useEffect, useRef, Fragment } = React;
 
 const API_BASE = '/api';
 const CATEGORIES = ["CEO Decision","Client Experience","Corporate Structure & Compliance","Financial Health","Growth & Revenue","People & Organization","Product & Innovation","Standardize & Automate"];
-const DEPARTMENTS = ["R&D", "Product", "Marketing", "Sales", "Partner Success", "Partnerships", "Finance", "Legal", "CFD | HR", "Management", "Mission Control"];
+const DEPARTMENTS = ["R&D", "Product", "Marketing", "Sales", "Partner Success", "Partnerships", "Finance", "Legal", "CFD | HR", "Management", "Mission Control", "Monetization"];
 const AVATAR_COLORS = ["#1B2A4A","#2E7D52","#1E5799","#7B241C","#6B46C1","#065F46","#92400E","#1E40AF","#7C3AED","#0F766E","#9D174D","#1D4ED8","#047857","#B45309","#374151"];
 const STATUS_KEYS = ["Not Started","In Progress","Completed"];
 const PRIORITY_CFG = {"Critical":{bg:"#F3E8FF",text:"#6B21A8",border:"#9333EA"},"High":{bg:"#FDECEA",text:"#7B241C",border:"#E74C3C"},"Medium":{bg:"#FEF3C7",text:"#7D4E00",border:"#F59E0B"},"Low":{bg:"#E8F8F5",text:"#1E8449",border:"#2ECC71"}};
@@ -1837,7 +1837,11 @@ function App() {
                     </div>
                     {users.length > 0 ? (
                       <div style={{display:"grid",gridTemplateColumns:isMobile ? "1fr" : "repeat(2,1fr)",gap:isMobile ? 10 : 12}}>
-                        {users.map((o,i) => {
+                        {[...users].sort((a,b)=>{
+                          const deptA = a.department || "—";
+                          const deptB = b.department || "—";
+                          return deptA.localeCompare(deptB);
+                        }).map((o,i) => {
                           const st = getStats(o.id);
                           return (
                             <div key={o.id} style={{border:"1px solid #E2E8F0",borderRadius:10,padding:isMobile ? 12 : 16,background:"white",cursor:"pointer"}}
@@ -2149,7 +2153,11 @@ function App() {
                       </select>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:isMobile ? "1fr" : "repeat(2,1fr)",gap:isMobile ? 10 : 12}}>
-                      {users.map((o,i) => {
+                      {[...users].sort((a,b)=>{
+                        const deptA = a.department || "—";
+                        const deptB = b.department || "—";
+                        return deptA.localeCompare(deptB);
+                      }).map((o,i) => {
                         const st = getStats(o.id);
                         return (
                           <div key={o.id} style={{border:"1px solid #E2E8F0",borderRadius:10,padding:isMobile ? 12 : 16,background:"white",cursor:"pointer"}}
