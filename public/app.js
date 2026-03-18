@@ -56,6 +56,7 @@ function App() {
   const [filterCategory, setFilterCategory] = useState("All");
   const [filterPerformance, setFilterPerformance] = useState("All");
   const [filterDue, setFilterDue] = useState("All");
+  const [filterOwner, setFilterOwner] = useState("All");
   const [filterOKR, setFilterOKR] = useState("All");
   const [searchQ, setSearchQ] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -140,7 +141,7 @@ function App() {
     if (selectedQuarter) {
       loadTasks();
     }
-  }, [selectedQuarter, filterStatus, filterPriority, filterCategory, filterPerformance, filterDue, filterOKR, searchQ]);
+  }, [selectedQuarter, filterStatus, filterPriority, filterCategory, filterPerformance, filterDue, filterOwner, filterOKR, searchQ]);
 
   // Load all users when admin views users page
   useEffect(() => {
@@ -561,6 +562,9 @@ function App() {
     let t = selectedOwner ? tasks.filter(x=>x.owner_id===selectedOwner) : tasks;
     
     // Apply filters
+    if (filterOwner !== "All" && !selectedOwner) {
+      t = t.filter(x => x.owner_id === parseInt(filterOwner));
+    }
     if (filterCategory !== "All") {
       t = t.filter(x => x.category === filterCategory);
     }
@@ -611,7 +615,7 @@ function App() {
     }
     
     return [...t].sort((a,b)=>(isOverdue(b)?1:0)-(isOverdue(a)?1:0));
-  }, [tasks, selectedOwner, filterCategory, filterPriority, filterStatus, filterPerformance, filterDue, filterOKR, searchQ]);
+  }, [tasks, selectedOwner, filterOwner, filterCategory, filterPriority, filterStatus, filterPerformance, filterDue, filterOKR, searchQ]);
 
   const overdueTasks = useMemo(() => {
     let filtered = tasks.filter(t=>isOverdue(t));
@@ -2642,88 +2646,114 @@ function App() {
 
             {/* ALL TASKS */}
             {view==="all" && !selectedOwner && (
-              <div style={{background:"white",borderRadius:12,padding:isMobile ? 16 : 24,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
-                  <h2 style={{margin:0,fontSize:isMobile ? 13 : 15,fontWeight:800,color:"#1B2A4A",textTransform:"uppercase"}}>All Tasks ({filteredTasks.length})</h2>
-                  <div style={{display:"flex",gap:isMobile ? 6 : 8,flexWrap:"wrap",width:isMobile ? "100%" : "auto"}}>
-                    <input placeholder="Search..." value={searchQ} onChange={e=>setSearchQ(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,width:isMobile ? "100%" : 160,flex:isMobile ? "1 1 100%" : "none"}} />
-                    <select value={filterCategory} onChange={e=>setFilterCategory(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
-                      <option value="All">All Categories</option>
-                      {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
-                      <option>All</option>
-                      {STATUS_KEYS.map(s=><option key={s}>{s}</option>)}
-                    </select>
-                    <select value={filterPriority} onChange={e=>setFilterPriority(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
-                      <option>All</option>
-                      {Object.keys(PRIORITY_CFG).map(p=><option key={p}>{p}</option>)}
-                    </select>
-                    <select value={filterOKR} onChange={e=>setFilterOKR(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
-                      <option value="All">All Tasks</option>
-                      <option value="Yes">OKR Tasks</option>
-                      <option value="No">Non-OKR Tasks</option>
-                    </select>
+              <div>
+                {/* Status Cards */}
+                <div style={{display:"grid",gridTemplateColumns:isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)",gap:isMobile ? 10 : 12,marginBottom:isMobile ? 12 : 16}}>
+                  <div style={{background:"#D4EDDA",borderRadius:12,padding:isMobile ? 14 : 20,textAlign:"center",border:"1px solid #C3E6CB"}}>
+                    <div style={{fontSize:isMobile ? 9 : 11,fontWeight:700,color:"#155724",textTransform:"uppercase",marginBottom:8}}>Completed</div>
+                    <div style={{fontSize:isMobile ? 28 : 36,fontWeight:900,color:"#155724",lineHeight:1}}>{filteredTasks.filter(t=>t.status==="Completed").length}</div>
+                  </div>
+                  <div style={{background:"#D6EAF8",borderRadius:12,padding:isMobile ? 14 : 20,textAlign:"center",border:"1px solid #AED6F1"}}>
+                    <div style={{fontSize:isMobile ? 9 : 11,fontWeight:700,color:"#1B4F72",textTransform:"uppercase",marginBottom:8}}>In Progress</div>
+                    <div style={{fontSize:isMobile ? 28 : 36,fontWeight:900,color:"#1B4F72",lineHeight:1}}>{filteredTasks.filter(t=>t.status==="In Progress").length}</div>
+                  </div>
+                  <div style={{background:"#FEF3C7",borderRadius:12,padding:isMobile ? 14 : 20,textAlign:"center",border:"1px solid #FDE68A"}}>
+                    <div style={{fontSize:isMobile ? 9 : 11,fontWeight:700,color:"#7D4E00",textTransform:"uppercase",marginBottom:8}}>Not Started</div>
+                    <div style={{fontSize:isMobile ? 28 : 36,fontWeight:900,color:"#7D4E00",lineHeight:1}}>{filteredTasks.filter(t=>t.status==="Not Started").length}</div>
+                  </div>
+                  <div style={{background:"#FEE2E2",borderRadius:12,padding:isMobile ? 14 : 20,textAlign:"center",border:"1px solid #FECACA"}}>
+                    <div style={{fontSize:isMobile ? 9 : 11,fontWeight:700,color:"#991B1B",textTransform:"uppercase",marginBottom:8}}>Overdue</div>
+                    <div style={{fontSize:isMobile ? 28 : 36,fontWeight:900,color:"#DC2626",lineHeight:1}}>{filteredTasks.filter(t=>isOverdue(t)).length}</div>
                   </div>
                 </div>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                    <thead>
-                      <tr style={{background:"#F7FAFC"}}>
-                        {["Task","Owner","Category","Priority","Due","OKR Task","Status","Performance",""].map((h,i)=>(
-                          <th key={i} style={{
-                            padding:"9px 10px",
-                            textAlign:"left",
-                            fontWeight:700,
-                            color:"#4A5568",
-                            fontSize:11,
-                            textTransform:"uppercase",
-                            borderBottom:"2px solid #E2E8F0",
-                            ...(h === "Due" ? {minWidth:"140px",width:"140px"} : h === "OKR Task" ? {textAlign:"center",minWidth:"80px"} : {})
-                          }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredTasks.map((t,i)=>{
-                        const o=users.find(o=>o.id===t.owner_id);
-                        return (
-                          <tr key={t.id} style={{background:isOverdue(t)?"#FFF5F5":i%2===0?"#FAFBFC":"white",borderBottom:"1px solid #EDF2F7"}}>
-                            <td style={{padding:"8px 10px",fontWeight:600}}>{t.name}</td>
-                            <td style={{padding:"8px 10px"}}><span onClick={()=>navTo("owner",o?.id)} style={{cursor:"pointer",color:"#1B2A4A",fontWeight:600,fontSize:11}}>{o?.name||"—"}</span></td>
-                            <td style={{padding:"8px 10px",color:"#718096",fontSize:11}}>{t.category||"—"}</td>
-                            <td style={{padding:"8px 10px"}}><PriorityBadge priority={t.priority} /></td>
-                            <td style={{padding:"8px 10px",fontSize:11,minWidth:"140px",width:"140px"}}>
-                              {t.due_date ? <span style={{color:isOverdue(t)?"#DC2626":"#718096",fontWeight:isOverdue(t)?700:400}}>{formatDate(t.due_date)}{isOverdue(t)&&` (+${daysOverdue(t)}d)`}</span> : "—"}
-                            </td>
-                            <td style={{padding:"8px 10px",textAlign:"center"}}>
-                              {(t.is_okr === 1 || t.is_okr === true) ? (
-                                <span style={{color:"#166534",fontSize:16,fontWeight:700}}>✓</span>
-                              ) : (
-                                <span style={{color:"#CBD5E0",fontSize:14}}>—</span>
-                              )}
-                            </td>
-                            <td style={{padding:"8px 10px"}}>
-                              <select value={t.status} onChange={e=>updateTask(t.id,"status",e.target.value)} style={{border:"1px solid #E2E8F0",borderRadius:6,padding:"3px 6px",fontSize:11,background:"white",cursor:"pointer"}}>
-                                {STATUS_KEYS.map(s=><option key={s}>{s}</option>)}
-                              </select>
-                            </td>
-                            <td style={{padding:"8px 10px"}}>
-                              <select value={t.performance||""} onChange={e=>updateTask(t.id,"performance",e.target.value)} style={{border:"1px solid #E2E8F0",borderRadius:6,padding:"3px 6px",fontSize:11,background:t.performance==="red"?"#FEE2E2":t.performance==="yellow"?"#FEF3C7":t.performance==="green"?"#DCFCE7":"white",cursor:"pointer"}}>
-                                <option value="">—</option>
-                                <option value="green">🟢</option>
-                                <option value="yellow">🟡</option>
-                                <option value="red">🔴</option>
-                              </select>
-                            </td>
-                            <td style={{padding:"8px 6px",textAlign:"center"}}>
-                              <button onClick={()=>setEditTask({...t})} style={{background:"none",border:"none",cursor:"pointer",color:"#CBD5E0",fontSize:14}}>✏️</button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+
+                <div style={{background:"white",borderRadius:12,padding:isMobile ? 16 : 24,boxShadow:"0 1px 4px rgba(0,0,0,0.08)"}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
+                    <h2 style={{margin:0,fontSize:isMobile ? 13 : 15,fontWeight:800,color:"#1B2A4A",textTransform:"uppercase"}}>All Tasks ({filteredTasks.length})</h2>
+                    <div style={{display:"flex",gap:isMobile ? 6 : 8,flexWrap:"wrap",width:isMobile ? "100%" : "auto"}}>
+                      <input placeholder="Search..." value={searchQ} onChange={e=>setSearchQ(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,width:isMobile ? "100%" : 160,flex:isMobile ? "1 1 100%" : "none"}} />
+                      <select value={filterOwner} onChange={e=>setFilterOwner(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
+                        <option value="All">All Owners</option>
+                        {users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                      <select value={filterCategory} onChange={e=>setFilterCategory(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
+                        <option value="All">All Categories</option>
+                        {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
+                        <option>All</option>
+                        {STATUS_KEYS.map(s=><option key={s}>{s}</option>)}
+                      </select>
+                      <select value={filterPriority} onChange={e=>setFilterPriority(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
+                        <option>All</option>
+                        {Object.keys(PRIORITY_CFG).map(p=><option key={p}>{p}</option>)}
+                      </select>
+                      <select value={filterOKR} onChange={e=>setFilterOKR(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
+                        <option value="All">All Tasks</option>
+                        <option value="Yes">OKR Tasks</option>
+                        <option value="No">Non-OKR Tasks</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{overflowX:"auto"}}>
+                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                      <thead>
+                        <tr style={{background:"#F7FAFC"}}>
+                          {["Task","Owner","Category","Priority","Due","OKR Task","Status","Performance",""].map((h,i)=>(
+                            <th key={i} style={{
+                              padding:"9px 10px",
+                              textAlign:"left",
+                              fontWeight:700,
+                              color:"#4A5568",
+                              fontSize:11,
+                              textTransform:"uppercase",
+                              borderBottom:"2px solid #E2E8F0",
+                              ...(h === "Due" ? {minWidth:"140px",width:"140px"} : h === "OKR Task" ? {textAlign:"center",minWidth:"80px"} : {})
+                            }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredTasks.map((t,i)=>{
+                          const o=users.find(o=>o.id===t.owner_id);
+                          return (
+                            <tr key={t.id} style={{background:isOverdue(t)?"#FFF5F5":i%2===0?"#FAFBFC":"white",borderBottom:"1px solid #EDF2F7"}}>
+                              <td style={{padding:"8px 10px",fontWeight:600}}>{t.name}</td>
+                              <td style={{padding:"8px 10px"}}><span onClick={()=>navTo("owner",o?.id)} style={{cursor:"pointer",color:"#1B2A4A",fontWeight:600,fontSize:11}}>{o?.name||"—"}</span></td>
+                              <td style={{padding:"8px 10px",color:"#718096",fontSize:11}}>{t.category||"—"}</td>
+                              <td style={{padding:"8px 10px"}}><PriorityBadge priority={t.priority} /></td>
+                              <td style={{padding:"8px 10px",fontSize:11,minWidth:"140px",width:"140px"}}>
+                                {t.due_date ? <span style={{color:isOverdue(t)?"#DC2626":"#718096",fontWeight:isOverdue(t)?700:400}}>{formatDate(t.due_date)}{isOverdue(t)&&` (+${daysOverdue(t)}d)`}</span> : "—"}
+                              </td>
+                              <td style={{padding:"8px 10px",textAlign:"center"}}>
+                                {(t.is_okr === 1 || t.is_okr === true) ? (
+                                  <span style={{color:"#166534",fontSize:16,fontWeight:700}}>✓</span>
+                                ) : (
+                                  <span style={{color:"#CBD5E0",fontSize:14}}>—</span>
+                                )}
+                              </td>
+                              <td style={{padding:"8px 10px"}}>
+                                <select value={t.status} onChange={e=>updateTask(t.id,"status",e.target.value)} style={{border:"1px solid #E2E8F0",borderRadius:6,padding:"3px 6px",fontSize:11,background:"white",cursor:"pointer"}}>
+                                  {STATUS_KEYS.map(s=><option key={s}>{s}</option>)}
+                                </select>
+                              </td>
+                              <td style={{padding:"8px 10px"}}>
+                                <select value={t.performance||""} onChange={e=>updateTask(t.id,"performance",e.target.value)} style={{border:"1px solid #E2E8F0",borderRadius:6,padding:"3px 6px",fontSize:11,background:t.performance==="red"?"#FEE2E2":t.performance==="yellow"?"#FEF3C7":t.performance==="green"?"#DCFCE7":"white",cursor:"pointer"}}>
+                                  <option value="">—</option>
+                                  <option value="green">🟢</option>
+                                  <option value="yellow">🟡</option>
+                                  <option value="red">🔴</option>
+                                </select>
+                              </td>
+                              <td style={{padding:"8px 6px",textAlign:"center"}}>
+                                <button onClick={()=>setEditTask({...t})} style={{background:"none",border:"none",cursor:"pointer",color:"#CBD5E0",fontSize:14}}>✏️</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
