@@ -169,6 +169,7 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     const urlView = urlParams.get('view') || 'dashboard';
     const urlOwner = urlParams.get('owner');
+    const urlStatus = urlParams.get('status');
     
     if (urlView !== view) {
       setView(urlView);
@@ -181,6 +182,9 @@ function App() {
     } else if (selectedOwner) {
       setSelectedOwner(null);
     }
+    if (urlStatus && urlStatus !== filterStatus) {
+      setFilterStatus(urlStatus);
+    }
   }, [user]); // Only run when user is loaded
 
   // Handle browser back/forward buttons
@@ -189,12 +193,18 @@ function App() {
       const urlParams = new URLSearchParams(window.location.search);
       const urlView = urlParams.get('view') || 'dashboard';
       const urlOwner = urlParams.get('owner');
+      const urlStatus = urlParams.get('status');
       
       setView(urlView);
       if (urlOwner) {
         setSelectedOwner(parseInt(urlOwner));
       } else {
         setSelectedOwner(null);
+      }
+      if (urlStatus) {
+        setFilterStatus(urlStatus);
+      } else {
+        setFilterStatus("All");
       }
     };
     
@@ -1073,12 +1083,14 @@ function App() {
     }
   };
 
-  const navTo = (v,oid=null) => {
+  const navTo = (v,oid=null,statusFilter=null) => {
     setView(v);
     setSelectedOwner(oid);
-    setFilterStatus("All");
+    setFilterStatus(statusFilter || "All");
     setFilterPriority("All");
     setFilterCategory("All");
+    setFilterPerformance("All");
+    setFilterDue("All");
     setSearchQ("");
     setShowAdd(false);
     
@@ -1090,9 +1102,12 @@ function App() {
     if (oid) {
       params.set('owner', oid);
     }
+    if (statusFilter) {
+      params.set('status', statusFilter);
+    }
     
     const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-    window.history.pushState({ view: v, owner: oid }, '', newUrl);
+    window.history.pushState({ view: v, owner: oid, status: statusFilter }, '', newUrl);
   };
 
   const logout = async () => {
@@ -1833,10 +1848,36 @@ function App() {
                               </div>
                               <ProgressBar done={st.completed} total={st.total} />
                               <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-                                <span style={{fontSize:11,background:"#D4EDDA",color:"#155724",padding:"2px 8px",borderRadius:10,fontWeight:700}}>✓ {st.completed}</span>
-                                <span style={{fontSize:11,background:"#D6EAF8",color:"#1B4F72",padding:"2px 8px",borderRadius:10,fontWeight:700}}>↻ {st.inProgress}</span>
-                                <span style={{fontSize:11,background:"#FEF3C7",color:"#7D4E00",padding:"2px 8px",borderRadius:10,fontWeight:700}}>○ {st.notStarted}</span>
-                                {st.overdue>0 && <span style={{fontSize:11,background:"#FEE2E2",color:"#DC2626",padding:"2px 8px",borderRadius:10,fontWeight:700}}>⚠ {st.overdue} overdue</span>}
+                                <span 
+                                  onClick={(e)=>{e.stopPropagation();navTo("owner",o.id,"Completed");}}
+                                  style={{fontSize:11,background:"#D4EDDA",color:"#155724",padding:"2px 8px",borderRadius:10,fontWeight:700,cursor:"pointer"}}
+                                  onMouseEnter={(e)=>e.target.style.opacity="0.8"}
+                                  onMouseLeave={(e)=>e.target.style.opacity="1"}
+                                >✓ {st.completed}</span>
+                                <span 
+                                  onClick={(e)=>{e.stopPropagation();navTo("owner",o.id,"In Progress");}}
+                                  style={{fontSize:11,background:"#D6EAF8",color:"#1B4F72",padding:"2px 8px",borderRadius:10,fontWeight:700,cursor:"pointer"}}
+                                  onMouseEnter={(e)=>e.target.style.opacity="0.8"}
+                                  onMouseLeave={(e)=>e.target.style.opacity="1"}
+                                >↻ {st.inProgress}</span>
+                                <span 
+                                  onClick={(e)=>{e.stopPropagation();navTo("owner",o.id,"Not Started");}}
+                                  style={{fontSize:11,background:"#FEF3C7",color:"#7D4E00",padding:"2px 8px",borderRadius:10,fontWeight:700,cursor:"pointer"}}
+                                  onMouseEnter={(e)=>e.target.style.opacity="0.8"}
+                                  onMouseLeave={(e)=>e.target.style.opacity="1"}
+                                >○ {st.notStarted}</span>
+                                {st.overdue>0 && (
+                                  <span 
+                                    onClick={(e)=>{
+                                      e.stopPropagation();
+                                      navTo("owner",o.id,"All");
+                                      setTimeout(()=>setFilterDue("Overdue"),0);
+                                    }}
+                                    style={{fontSize:11,background:"#FEE2E2",color:"#DC2626",padding:"2px 8px",borderRadius:10,fontWeight:700,cursor:"pointer"}}
+                                    onMouseEnter={(e)=>e.target.style.opacity="0.8"}
+                                    onMouseLeave={(e)=>e.target.style.opacity="1"}
+                                  >⚠ {st.overdue} overdue</span>
+                                )}
                               </div>
                             </div>
                           );
@@ -2119,10 +2160,36 @@ function App() {
                             </div>
                             <ProgressBar done={st.completed} total={st.total} />
                             <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-                              <span style={{fontSize:11,background:"#D4EDDA",color:"#155724",padding:"2px 8px",borderRadius:10,fontWeight:700}}>✓ {st.completed}</span>
-                              <span style={{fontSize:11,background:"#D6EAF8",color:"#1B4F72",padding:"2px 8px",borderRadius:10,fontWeight:700}}>↻ {st.inProgress}</span>
-                              <span style={{fontSize:11,background:"#FEF3C7",color:"#7D4E00",padding:"2px 8px",borderRadius:10,fontWeight:700}}>○ {st.notStarted}</span>
-                              {st.overdue>0 && <span style={{fontSize:11,background:"#FEE2E2",color:"#DC2626",padding:"2px 8px",borderRadius:10,fontWeight:700}}>⚠ {st.overdue} overdue</span>}
+                              <span 
+                                onClick={(e)=>{e.stopPropagation();navTo("owner",o.id,"Completed");}}
+                                style={{fontSize:11,background:"#D4EDDA",color:"#155724",padding:"2px 8px",borderRadius:10,fontWeight:700,cursor:"pointer"}}
+                                onMouseEnter={(e)=>e.target.style.opacity="0.8"}
+                                onMouseLeave={(e)=>e.target.style.opacity="1"}
+                              >✓ {st.completed}</span>
+                              <span 
+                                onClick={(e)=>{e.stopPropagation();navTo("owner",o.id,"In Progress");}}
+                                style={{fontSize:11,background:"#D6EAF8",color:"#1B4F72",padding:"2px 8px",borderRadius:10,fontWeight:700,cursor:"pointer"}}
+                                onMouseEnter={(e)=>e.target.style.opacity="0.8"}
+                                onMouseLeave={(e)=>e.target.style.opacity="1"}
+                              >↻ {st.inProgress}</span>
+                              <span 
+                                onClick={(e)=>{e.stopPropagation();navTo("owner",o.id,"Not Started");}}
+                                style={{fontSize:11,background:"#FEF3C7",color:"#7D4E00",padding:"2px 8px",borderRadius:10,fontWeight:700,cursor:"pointer"}}
+                                onMouseEnter={(e)=>e.target.style.opacity="0.8"}
+                                onMouseLeave={(e)=>e.target.style.opacity="1"}
+                              >○ {st.notStarted}</span>
+                              {st.overdue>0 && (
+                                <span 
+                                  onClick={(e)=>{
+                                    e.stopPropagation();
+                                    navTo("owner",o.id,"All");
+                                    setTimeout(()=>setFilterDue("Overdue"),0);
+                                  }}
+                                  style={{fontSize:11,background:"#FEE2E2",color:"#DC2626",padding:"2px 8px",borderRadius:10,fontWeight:700,cursor:"pointer"}}
+                                  onMouseEnter={(e)=>e.target.style.opacity="0.8"}
+                                  onMouseLeave={(e)=>e.target.style.opacity="1"}
+                                >⚠ {st.overdue} overdue</span>
+                              )}
                             </div>
                           </div>
                         );
