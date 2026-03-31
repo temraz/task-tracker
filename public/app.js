@@ -1979,7 +1979,7 @@ function App() {
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                   <thead>
                     <tr style={{background:"#F7FAFC"}}>
-                      {["Task","Category","Priority","Due","OKR","Status","Performance","Notes",""].map((h,i)=>(
+                      {["Task","Category","Linked Department","Priority","Due","OKR","Status","Performance","Notes",""].map((h,i)=>(
                         <th key={i} style={{
                           padding:"9px 10px",
                           textAlign:"left",
@@ -1996,7 +1996,7 @@ function App() {
                   <tbody>
                     {filteredTasks.length === 0 ? (
                       <tr>
-                        <td colSpan={9} style={{padding:"40px 20px",textAlign:"center",color:"#94A3B8",fontSize:13}}>
+                        <td colSpan={10} style={{padding:"40px 20px",textAlign:"center",color:"#94A3B8",fontSize:13}}>
                           No tasks yet. Click "+ Add Task" above to create your first task.
                         </td>
                       </tr>
@@ -2006,6 +2006,7 @@ function App() {
                           <tr style={{background:isOverdue(t)?"#FFF5F5":i%2===0?"#FAFBFC":"white",borderBottom:"1px solid #EDF2F7"}}>
                             <td style={{padding:"9px 10px",fontWeight:600}}>{t.name}</td>
                             <td style={{padding:"9px 10px",color:"#718096",fontSize:11}}>{t.category||"—"}</td>
+                            <td style={{padding:"9px 10px",color:"#718096",fontSize:11}}>{t.linked_department||"—"}</td>
                             <td style={{padding:"9px 10px"}}><PriorityBadge priority={t.priority} /></td>
                             <td style={{padding:"9px 10px",fontSize:11,minWidth:"180px",width:"180px"}}>
                               {t.due_date ? <span style={{color:isOverdue(t)?"#DC2626":"#718096",fontWeight:isOverdue(t)?700:400}}>{formatDate(t.due_date)}{isOverdue(t)&&` (+${daysOverdue(t)}d)`}</span> : "—"}
