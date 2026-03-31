@@ -175,6 +175,30 @@ async function migrate() {
       }
     }
     
+    // Run linked_department migration
+    const linkedDeptPath = path.join(__dirname, '../database/migration_add_linked_department.sql');
+    if (fs.existsSync(linkedDeptPath)) {
+      try {
+        const linkedDeptSql = fs.readFileSync(linkedDeptPath, 'utf8');
+        const stmts = linkedDeptSql
+          .split(';')
+          .map(s => s.trim())
+          .filter(s => s.length > 0 && !s.startsWith('--'));
+        for (const s of stmts) {
+          try {
+            await pool.query(s);
+          } catch (err) {
+            if (!err.message.includes('already exists')) {
+              console.error('linked_department migration warning:', err.message);
+            }
+          }
+        }
+        console.log('✅ linked_department migration completed');
+      } catch (err) {
+        console.error('linked_department migration error:', err.message);
+      }
+    }
+
     console.log('✅ All database migrations completed');
     
     // Create default admin user if not exists
