@@ -54,6 +54,7 @@ function App() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterPriority, setFilterPriority] = useState("All");
   const [filterCategory, setFilterCategory] = useState("All");
+  const [filterLinkedDept, setFilterLinkedDept] = useState("All");
   const [filterPerformance, setFilterPerformance] = useState("All");
   const [filterDue, setFilterDue] = useState("All");
   const [filterOwner, setFilterOwner] = useState("All");
@@ -363,6 +364,7 @@ function App() {
       if (filterStatus !== "All") params.append('status', filterStatus);
       if (filterPriority !== "All") params.append('priority', filterPriority);
       if (filterCategory !== "All") params.append('category', filterCategory);
+      if (filterLinkedDept !== "All") params.append('linked_department', filterLinkedDept);
       if (filterOKR !== "All") params.append('is_okr', filterOKR === "Yes" ? "1" : "0");
       if (searchQ) params.append('search', searchQ);
 
@@ -1931,6 +1933,16 @@ function App() {
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
                 <h2 style={{margin:0,fontSize:isMobile ? 13 : 15,fontWeight:800,color:"#1B2A4A"}}>Tasks</h2>
                 <button onClick={()=>setShowAdd(true)} style={{background:"#C9A84C",color:"#1B2A4A",border:"none",padding:isMobile ? "6px 12px" : "7px 16px",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:isMobile ? 12 : 13}}>+ Add Task</button>
+              </div>
+              {/* Filters row extension: Linked Department */}
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+                <select value={filterLinkedDept} onChange={e=>{setFilterLinkedDept(e.target.value); setTimeout(loadTasks,0);}}
+                  style={{padding:"7px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white"}}>
+                  <option>All</option>
+                  {Array.from(new Set((users||[]).map(u=>u.department).filter(Boolean))).sort().map(d=>(
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
               </div>
               {showAdd && (
                 <div style={{background:"#F7FAFC",border:"1px solid #E2E8F0",borderRadius:10,padding:16,marginBottom:16}}>

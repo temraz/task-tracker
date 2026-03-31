@@ -7,7 +7,7 @@ const router = express.Router();
 // Get all tasks with filters
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { quarter_id, owner_id, status, priority, category, search, is_okr } = req.query;
+    const { quarter_id, owner_id, status, priority, category, search, is_okr, linked_department } = req.query;
     
     let query = `
       SELECT t.*, 
@@ -40,6 +40,10 @@ router.get('/', requireAuth, async (req, res) => {
     if (category && category !== 'All') {
       query += ` AND t.category = $${paramCount++}`;
       params.push(category);
+    }
+    if (linked_department && linked_department !== 'All') {
+      query += ` AND t.linked_department = $${paramCount++}`;
+      params.push(linked_department);
     }
     if (search) {
       query += ` AND t.name ILIKE $${paramCount++}`;
