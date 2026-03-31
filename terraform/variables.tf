@@ -16,6 +16,12 @@ variable "key_pair_name" {
   default     = "" # You need to provide this
 }
 
+variable "private_key_path" {
+  description = "Local filesystem path to the SSH private key that matches key_pair_name"
+  type        = string
+  default     = "~/.ssh/task-manager-key" # Update if your key has a .pem extension or different name
+}
+
 variable "db_password" {
   description = "PostgreSQL database password"
   type        = string

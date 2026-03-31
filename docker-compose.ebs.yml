@@ -1,0 +1,5 @@
+services:
+  db:
+    volumes:
+      - /mnt/pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql

@@ -151,6 +151,46 @@ resource "aws_instance" "task_manager" {
     Environment = "production"
     Project     = "task-manager"
   }
+
+  # After the instance is ready, upload the application code and start the stack
+  connection {
+    type        = "ssh"
+    host        = self.public_ip
+    user        = "ec2-user"
+    private_key = file(pathexpand(var.private_key_path))
+  }
+
+  # Ensure destination directory exists and is writable by ec2-user
+  provisioner "remote-exec" {
+    inline = [
+      "set -e",
+      "sudo mkdir -p /opt/task-manager",
+      "sudo chown ec2-user:ec2-user /opt/task-manager",
+      "echo 'Prepared /opt/task-manager directory'",
+    ]
+  }
+
+  # Copy the current project (parent dir of terraform/) to the instance
+  provisioner "file" {
+    source      = abspath("${path.module}/..")
+    destination = "/opt/task-manager"
+  }
+
+  # Build and start containers
+  provisioner "remote-exec" {
+    inline = [
+      "set -e",
+      "cd /opt/task-manager",
+      # wait for docker and docker-compose (user data may still be installing)
+      "until command -v docker >/dev/null 2>&1; do echo 'waiting for docker'; sleep 5; done",
+      "sudo systemctl start docker || true",
+      "sudo systemctl enable docker || true",
+      "until [ -x /usr/local/bin/docker-compose ]; do echo 'waiting for docker-compose'; sleep 5; done",
+      # Prefer production compose if present; fallback to default
+      "if [ -f docker-compose.prod.yml ]; then /usr/local/bin/docker-compose -f docker-compose.prod.yml up -d --build; else /usr/local/bin/docker-compose up -d --build; fi",
+      "echo 'Application started via docker-compose' | sudo tee -a /var/log/user-data.log"
+    ]
+  }
 }
 
 # Elastic IP (optional - for static IP)
