@@ -10,6 +10,25 @@ async function migrate() {
   try {
     console.log('🔄 Running database migrations...');
     
+    // 0) Bootstrap fix migration file (idempotent)
+    const bootstrapFixPath = path.join(__dirname, '../database/migration_bootstrap_fix.sql');
+    if (fs.existsSync(bootstrapFixPath)) {
+      const bootstrapFix = fs.readFileSync(bootstrapFixPath, 'utf8');
+      const bootstrapStatements = bootstrapFix
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--'));
+      for (const statement of bootstrapStatements) {
+        try {
+          await pool.query(statement);
+        } catch (err) {
+          if (!err.message.includes('already exists')) {
+            console.error('Bootstrap fix warning:', err.message);
+          }
+        }
+      }
+    }
+
     // Preflight: ensure critical columns exist before anything else
     try {
       await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255)");
