@@ -60,7 +60,7 @@ function App() {
   const [filterOKR, setFilterOKR] = useState("All");
   const [searchQ, setSearchQ] = useState("");
   const [showAdd, setShowAdd] = useState(false);
-  const [newTask, setNewTask] = useState({name:"",category:"",priority:"Medium",due_date:"",status:"Not Started",notes:"",is_okr:false});
+  const [newTask, setNewTask] = useState({name:"",category:"",priority:"Medium",due_date:"",status:"Not Started",notes:"",is_okr:false,linked_department:""});
   const [editTask, setEditTask] = useState(null);
   const [showAddOwner, setShowAddOwner] = useState(false);
   const [newOwner, setNewOwner] = useState({name:"",email:"",department:""});
@@ -696,6 +696,7 @@ function App() {
         status: newTask.status || 'Not Started',
         notes: newTask.notes || null,
         is_okr: newTask.is_okr === true ? 1 : 0,
+        linked_department: newTask.linked_department || null,
         quarter_id: selectedQuarter.id,
         owner_id: selectedOwner || null
       };
@@ -704,7 +705,7 @@ function App() {
         method: 'POST',
         body: JSON.stringify(taskData)
       });
-      setNewTask({name:"",category:"",priority:"Medium",due_date:"",status:"Not Started",notes:"",is_okr:false});
+      setNewTask({name:"",category:"",priority:"Medium",due_date:"",status:"Not Started",notes:"",is_okr:false,linked_department:""});
       setShowAdd(false);
       loadTasks();
     } catch (err) {
@@ -740,7 +741,8 @@ function App() {
     try {
       const updateData = {
         ...editTask,
-        is_okr: (editTask.is_okr === true || editTask.is_okr === 'true' || editTask.is_okr === 1) ? 1 : 0
+        is_okr: (editTask.is_okr === true || editTask.is_okr === 'true' || editTask.is_okr === 1) ? 1 : 0,
+        linked_department: editTask.linked_department || null
       };
       console.log('Updating task with data:', updateData);
       await apiCall(`/tasks/${editTask.id}`, {
@@ -1946,6 +1948,13 @@ function App() {
                     <option value="">Category *</option>
                     {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
                   </select>
+                  <select value={newTask.linked_department||""} onChange={e=>setNewTask(p=>({...p,linked_department:e.target.value}))}
+                    style={{width:"100%",padding:"7px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white",marginBottom:10}}>
+                    <option value="">Linked Department (optional)</option>
+                    {Array.from(new Set((users||[]).map(u=>u.department).filter(Boolean))).sort().map(d=>(
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
                   <input placeholder="Notes (optional)" value={newTask.notes} onChange={e=>setNewTask(p=>({...p,notes:e.target.value}))} style={{width:"100%",padding:"7px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,marginBottom:10}} />
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                     <input 
@@ -1979,7 +1988,7 @@ function App() {
                           fontSize:11,
                           textTransform:"uppercase",
                           borderBottom:"2px solid #E2E8F0",
-                          ...(h === "Due" ? {minWidth:"140px",width:"140px"} : {})
+                          ...(h === "Due" ? {minWidth:"180px",width:"180px"} : {})
                         }}>{h}</th>
                       ))}
                     </tr>
@@ -1998,7 +2007,7 @@ function App() {
                             <td style={{padding:"9px 10px",fontWeight:600}}>{t.name}</td>
                             <td style={{padding:"9px 10px",color:"#718096",fontSize:11}}>{t.category||"—"}</td>
                             <td style={{padding:"9px 10px"}}><PriorityBadge priority={t.priority} /></td>
-                            <td style={{padding:"9px 10px",fontSize:11,minWidth:"140px",width:"140px"}}>
+                            <td style={{padding:"9px 10px",fontSize:11,minWidth:"180px",width:"180px"}}>
                               {t.due_date ? <span style={{color:isOverdue(t)?"#DC2626":"#718096",fontWeight:isOverdue(t)?700:400}}>{formatDate(t.due_date)}{isOverdue(t)&&` (+${daysOverdue(t)}d)`}</span> : "—"}
                             </td>
                             <td style={{padding:"9px 10px",textAlign:"center"}}>
@@ -3170,6 +3179,16 @@ function App() {
                     <option value="green">🟢 On Track</option>
                     <option value="yellow">🟡 At Risk</option>
                     <option value="red">🔴 Off Track</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#4A5568",textTransform:"uppercase",display:"block",marginBottom:5}}>Linked Department</label>
+                  <select value={editTask.linked_department||""} onChange={e=>setEditTask(p=>({...p,linked_department:e.target.value}))}
+                    style={{width:"100%",padding:"9px 12px",border:"1px solid #CBD5E0",borderRadius:8,fontSize:13,background:"white"}}>
+                    <option value="">— None —</option>
+                    {Array.from(new Set((users||[]).map(u=>u.department).filter(Boolean))).sort().map(d=>(
+                      <option key={d} value={d}>{d}</option>
+                    ))}
                   </select>
                 </div>
               </div>

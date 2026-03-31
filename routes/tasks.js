@@ -92,7 +92,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   try {
     const body = req.body;
-    const { quarter_id, owner_id, name, category, priority, due_date, status, performance, notes } = body;
+    const { quarter_id, owner_id, name, category, priority, due_date, status, performance, notes, linked_department } = body;
 
     if (!name || !quarter_id) {
       return res.status(400).json({ error: 'Name and quarter_id are required' });
@@ -109,8 +109,8 @@ router.post('/', requireAuth, async (req, res) => {
     console.log('CREATE TASK - is_okr raw:', body.is_okr, 'type:', typeof body.is_okr, 'converted:', isOkrValue);
     
     const result = await pool.query(
-      `INSERT INTO tasks (quarter_id, owner_id, name, category, priority, due_date, status, performance, notes, is_okr, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `INSERT INTO tasks (quarter_id, owner_id, name, category, priority, due_date, status, performance, notes, is_okr, created_by, linked_department)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
       [
         quarter_id, 
@@ -123,7 +123,8 @@ router.post('/', requireAuth, async (req, res) => {
         performance || null, 
         notes || null, 
         isOkrValue, 
-        req.session.user.id
+        req.session.user.id,
+        linked_department || null
       ]
     );
 
@@ -148,7 +149,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     
     // Build update object - only include fields that are actually being updated
     const updates = {};
-    const allowedFields = ['name', 'category', 'priority', 'due_date', 'status', 'performance', 'notes', 'owner_id', 'quarter_id', 'is_okr'];
+    const allowedFields = ['name', 'category', 'priority', 'due_date', 'status', 'performance', 'notes', 'owner_id', 'quarter_id', 'is_okr', 'linked_department'];
     
     for (const field of allowedFields) {
       if (field in body) {

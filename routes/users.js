@@ -295,3 +295,16 @@ router.post('/:id/resend-invitation', requireAuth, requireAdmin, async (req, res
 });
 
 export default router;
+
+// Additional helper route: distinct departments list
+router.get('/departments/list', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department <> '' ORDER BY department ASC"
+    );
+    res.json({ departments: result.rows.map(r => r.department) });
+  } catch (error) {
+    console.error('Error fetching departments:', error);
+    res.status(500).json({ error: 'Failed to fetch departments' });
+  }
+});

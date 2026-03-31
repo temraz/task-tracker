@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     performance VARCHAR(50) CHECK (performance IN ('green', 'yellow', 'red')),
     -- add is_okr from day one
     is_okr INTEGER DEFAULT 0,
+    -- linked department for reporting
+    linked_department VARCHAR(255),
     notes TEXT,
     created_by INTEGER REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
