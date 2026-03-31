@@ -10,6 +10,15 @@ async function migrate() {
   try {
     console.log('🔄 Running database migrations...');
     
+    // Preflight: ensure critical columns exist before anything else
+    try {
+      await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255)");
+      await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255) UNIQUE");
+      await pool.query("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_okr BOOLEAN DEFAULT false");
+    } catch (preErr) {
+      console.error('Preflight migration warning:', preErr.message);
+    }
+
     const schemaPath = path.join(__dirname, '../database/schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
     
@@ -93,6 +102,9 @@ async function migrate() {
     }
     
     console.log(`📊 Executing ${okrStatements.length} migration statements...`);
+    // Ensure column exists before creating indexes (defensive)
+    await pool.query('ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_okr BOOLEAN DEFAULT false');
+
     for (const statement of okrStatements) {
       if (statement) {
         try {
@@ -133,6 +145,7 @@ async function migrate() {
       // Inline migration if file doesn't exist
       console.log('🔄 Running inline OKR to INTEGER migration...');
       try {
+        await pool.query('ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_okr BOOLEAN DEFAULT false');
         await pool.query('ALTER TABLE tasks ALTER COLUMN is_okr TYPE INTEGER USING CASE WHEN is_okr = true THEN 1 ELSE 0 END');
         await pool.query('ALTER TABLE tasks ALTER COLUMN is_okr SET DEFAULT 0');
         console.log('✅ OKR to INTEGER migration completed');

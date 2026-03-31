@@ -5,6 +5,9 @@ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     microsoft_id VARCHAR(255) UNIQUE,
     email VARCHAR(255) UNIQUE NOT NULL,
+    -- ensure local auth works on first bootstrap
+    password VARCHAR(255),
+    username VARCHAR(255) UNIQUE,
     name VARCHAR(255) NOT NULL,
     department VARCHAR(255),
     avatar VARCHAR(10),
@@ -40,6 +43,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     due_date DATE,
     status VARCHAR(50) DEFAULT 'Not Started' CHECK (status IN ('Not Started', 'In Progress', 'Completed')),
     performance VARCHAR(50) CHECK (performance IN ('green', 'yellow', 'red')),
+    -- add is_okr from day one
+    is_okr INTEGER DEFAULT 0,
     notes TEXT,
     created_by INTEGER REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -63,6 +68,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
 CREATE INDEX IF NOT EXISTS idx_comments_task ON comments(task_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_microsoft_id ON users(microsoft_id);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
