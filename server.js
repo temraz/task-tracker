@@ -20,8 +20,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Rate limiting (production)
-if (process.env.NODE_ENV === 'production') {
+// Rate limiting (optional - disabled by default)
+// Enable by setting RATE_LIMIT_ENABLED=true
+if (process.env.RATE_LIMIT_ENABLED === 'true') {
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // Limit each IP to 100 requests per windowMs
@@ -30,16 +31,6 @@ if (process.env.NODE_ENV === 'production') {
     legacyHeaders: false,
   });
   app.use('/api/', limiter);
-  
-  // Stricter limit for auth endpoints
-  const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 5, // 5 login attempts per 15 minutes
-    message: 'Too many login attempts, please try again later.',
-    skipSuccessfulRequests: true,
-  });
-  app.use('/api/auth/login', authLimiter);
-  app.use('/api/auth/register', authLimiter);
 }
 
 // Middleware
