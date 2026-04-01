@@ -46,6 +46,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
+  // Use the same departments list as the User form dropdown
+  const [departments, setDepartments] = useState(DEPARTMENTS);
   const [quarters, setQuarters] = useState([]);
   const [currentQuarter, setCurrentQuarter] = useState(null);
   const [selectedQuarter, setSelectedQuarter] = useState(null);
@@ -142,7 +144,7 @@ function App() {
     if (selectedQuarter) {
       loadTasks();
     }
-  }, [selectedQuarter, filterStatus, filterPriority, filterCategory, filterPerformance, filterDue, filterOwner, filterOKR, searchQ]);
+  }, [selectedQuarter, filterStatus, filterPriority, filterCategory, filterLinkedDept, filterPerformance, filterDue, filterOwner, filterOKR, searchQ]);
 
   // Load all users when admin views users page
   useEffect(() => {
@@ -344,6 +346,9 @@ function App() {
         // Don't fail completely if users fail to load
         setUsers([]);
       }
+
+      // Keep departments list in sync with canonical list
+      setDepartments(DEPARTMENTS);
 
       setLoading(false);
     } catch (err) {
@@ -1963,7 +1968,7 @@ function App() {
                   <select value={newTask.linked_department||""} onChange={e=>setNewTask(p=>({...p,linked_department:e.target.value}))}
                     style={{width:"100%",padding:"7px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white",marginBottom:10}}>
                     <option value="">Linked Department (optional)</option>
-                    {Array.from(new Set((users||[]).map(u=>u.department).filter(Boolean))).sort().map(d=>(
+                    {(departments && departments.length ? departments : Array.from(new Set((users||[]).map(u=>u.department).filter(Boolean))).sort()).map(d=>(
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
@@ -2000,7 +2005,7 @@ function App() {
                           fontSize:11,
                           textTransform:"uppercase",
                           borderBottom:"2px solid #E2E8F0",
-                          ...(h === "Due" ? {minWidth:"180px",width:"180px"} : {})
+                          ...(h === "Due" ? {minWidth:"220px",width:"220px"} : {})
                         }}>{h}</th>
                       ))}
                     </tr>
@@ -2020,7 +2025,7 @@ function App() {
                             <td style={{padding:"9px 10px",color:"#718096",fontSize:11}}>{t.category||"—"}</td>
                             <td style={{padding:"9px 10px",color:"#718096",fontSize:11}}>{t.linked_department||"—"}</td>
                             <td style={{padding:"9px 10px"}}><PriorityBadge priority={t.priority} /></td>
-                            <td style={{padding:"9px 10px",fontSize:11,minWidth:"180px",width:"180px"}}>
+                            <td style={{padding:"9px 10px",fontSize:11,minWidth:"220px",width:"220px"}}>
                               {t.due_date ? <span style={{color:isOverdue(t)?"#DC2626":"#718096",fontWeight:isOverdue(t)?700:400}}>{formatDate(t.due_date)}{isOverdue(t)&&` (+${daysOverdue(t)}d)`}</span> : "—"}
                             </td>
                             <td style={{padding:"9px 10px",textAlign:"center"}}>
@@ -2362,7 +2367,7 @@ function App() {
                                 fontSize:11,
                                 textTransform:"uppercase",
                                 borderBottom:"2px solid #E2E8F0",
-                                ...(h === "DUE" ? {minWidth:"140px",width:"140px"} : h === "OKR Task" ? {textAlign:"center",minWidth:"80px"} : {})
+                                ...(h === "DUE" ? {minWidth:"220px",width:"220px"} : h === "OKR Task" ? {textAlign:"center",minWidth:"80px"} : {})
                               }}>{h}</th>
                             ))}
                           </tr>
@@ -2377,7 +2382,7 @@ function App() {
                                 <td style={{padding:"9px 10px",color:"#1B2A4A",fontWeight:600}}>{owner?.name||"—"}</td>
                                 <td style={{padding:"9px 10px",color:"#718096",fontSize:11}}>{t.category||"—"}</td>
                                 <td style={{padding:"9px 10px"}}><PriorityBadge priority={t.priority} /></td>
-                                <td style={{padding:"9px 10px",color:"#DC2626",fontWeight:700,minWidth:"140px",width:"140px"}}>{formatDate(t.due_date) || "—"}</td>
+                                <td style={{padding:"9px 10px",color:"#DC2626",fontWeight:700,minWidth:"220px",width:"220px"}}>{formatDate(t.due_date) || "—"}</td>
                                 <td style={{padding:"9px 10px",textAlign:"center"}}>
                                   {(t.is_okr === 1 || t.is_okr === true) ? (
                                     <span style={{color:"#166534",fontSize:16,fontWeight:700}}>✓</span>
@@ -2738,7 +2743,7 @@ function App() {
                               fontSize:11,
                               textTransform:"uppercase",
                               borderBottom:"2px solid #E2E8F0",
-                              ...(h === "Due" ? {minWidth:"140px",width:"140px"} : h === "OKR Task" ? {textAlign:"center",minWidth:"80px"} : {})
+                              ...(h === "Due" ? {minWidth:"220px",width:"220px"} : h === "OKR Task" ? {textAlign:"center",minWidth:"80px"} : {})
                             }}>{h}</th>
                           ))}
                         </tr>
@@ -2752,7 +2757,7 @@ function App() {
                               <td style={{padding:"8px 10px"}}><span onClick={()=>navTo("owner",o?.id)} style={{cursor:"pointer",color:"#1B2A4A",fontWeight:600,fontSize:11}}>{o?.name||"—"}</span></td>
                               <td style={{padding:"8px 10px",color:"#718096",fontSize:11}}>{t.category||"—"}</td>
                               <td style={{padding:"8px 10px"}}><PriorityBadge priority={t.priority} /></td>
-                              <td style={{padding:"8px 10px",fontSize:11,minWidth:"140px",width:"140px"}}>
+                              <td style={{padding:"8px 10px",fontSize:11,minWidth:"220px",width:"220px"}}>
                                 {t.due_date ? <span style={{color:isOverdue(t)?"#DC2626":"#718096",fontWeight:isOverdue(t)?700:400}}>{formatDate(t.due_date)}{isOverdue(t)&&` (+${daysOverdue(t)}d)`}</span> : "—"}
                               </td>
                               <td style={{padding:"8px 10px",textAlign:"center"}}>
@@ -2817,6 +2822,10 @@ function App() {
                       <option value="All">All Categories</option>
                       {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
                     </select>
+                    <select value={filterLinkedDept} onChange={e=>setFilterLinkedDept(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
+                      <option value="All">All Departments</option>
+                      {DEPARTMENTS.map(dept=><option key={dept} value={dept}>{dept}</option>)}
+                    </select>
                     <select value={filterPriority} onChange={e=>setFilterPriority(e.target.value)} style={{padding:isMobile ? "6px 10px" : "5px 10px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:isMobile ? 11 : 12,background:"white",flex:isMobile ? "1 1 calc(50% - 3px)" : "none"}}>
                       <option>All</option>
                       {Object.keys(PRIORITY_CFG).map(p=><option key={p}>{p}</option>)}
@@ -2855,6 +2864,13 @@ function App() {
                         <option value="">Category *</option>
                           {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
                         </select>
+                      <select value={newTask.linked_department||""} onChange={e=>setNewTask(p=>({...p,linked_department:e.target.value}))}
+                        style={{width:"100%",padding:"7px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,background:"white",marginBottom:10}}>
+                        <option value="">Linked Department (optional)</option>
+                        {(departments && departments.length ? departments : Array.from(new Set((users||[]).map(u=>u.department).filter(Boolean))).sort()).map(d=>(
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
                       <input placeholder="Notes (optional)" value={newTask.notes} onChange={e=>setNewTask(p=>({...p,notes:e.target.value}))} style={{width:"100%",padding:"7px 12px",border:"1px solid #CBD5E0",borderRadius:6,fontSize:12,marginBottom:10}} />
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                         <input 
@@ -2879,7 +2895,7 @@ function App() {
                     <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                       <thead>
                         <tr style={{background:"#F7FAFC"}}>
-                          {["Task","Category","Priority","Due","OKR Task","Status","Performance","Notes",""].map((h,i)=>(
+                          {["Task","Category","Linked Department","Priority","Due","OKR Task","Status","Performance","Notes",""].map((h,i)=>(
                             <th key={i} style={{
                               padding:"9px 10px",
                               textAlign:"left",
@@ -2899,6 +2915,7 @@ function App() {
                             <tr style={{background:isOverdue(t)?"#FFF5F5":i%2===0?"#FAFBFC":"white",borderBottom:"1px solid #EDF2F7"}}>
                               <td style={{padding:"9px 10px",fontWeight:600}}>{t.name}</td>
                               <td style={{padding:"9px 10px",color:"#718096",fontSize:11}}>{t.category||"—"}</td>
+                              <td style={{padding:"9px 10px",color:"#718096",fontSize:11}}>{t.linked_department||"—"}</td>
                               <td style={{padding:"9px 10px"}}><PriorityBadge priority={t.priority} /></td>
                               <td style={{padding:"9px 10px",fontSize:11}}>
                                 {t.due_date ? <span style={{color:isOverdue(t)?"#DC2626":"#718096",fontWeight:isOverdue(t)?700:400}}>{formatDate(t.due_date)}{isOverdue(t)&&` (+${daysOverdue(t)}d)`}</span> : "—"}
@@ -2939,7 +2956,7 @@ function App() {
                             </tr>
                             {activeCommentTask===t.id && (
                               <tr style={{background:"#F8FAFF"}}>
-                                <td colSpan={9} style={{padding:"12px 16px",borderBottom:"1px solid #E2E8F0"}}>
+                                <td colSpan={10} style={{padding:"12px 16px",borderBottom:"1px solid #E2E8F0"}}>
                                   <div style={{fontSize:11,fontWeight:700,color:"#1B2A4A",marginBottom:8}}>💬 Comments</div>
                                   {(comments[t.id]||[]).map((c,ci)=>(
                                     <div key={ci} style={{background:"white",border:"1px solid #E2E8F0",borderRadius:8,padding:"8px 12px",marginBottom:6}}>
@@ -3199,7 +3216,7 @@ function App() {
                   <select value={editTask.linked_department||""} onChange={e=>setEditTask(p=>({...p,linked_department:e.target.value}))}
                     style={{width:"100%",padding:"9px 12px",border:"1px solid #CBD5E0",borderRadius:8,fontSize:13,background:"white"}}>
                     <option value="">— None —</option>
-                    {Array.from(new Set((users||[]).map(u=>u.department).filter(Boolean))).sort().map(d=>(
+                    {(departments && departments.length ? departments : Array.from(new Set((users||[]).map(u=>u.department).filter(Boolean))).sort()).map(d=>(
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>

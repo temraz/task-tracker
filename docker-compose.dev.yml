@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
       dockerfile: Dockerfile
     container_name: classera_app_dev
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       NODE_ENV: development
       PORT: 3000
@@ -35,20 +35,20 @@ services:
       MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID}
       MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET}
       MICROSOFT_TENANT_ID: ${MICROSOFT_TENANT_ID}
-      MICROSOFT_REDIRECT_URI: ${MICROSOFT_REDIRECT_URI:-http://localhost:3000/auth/microsoft/callback}
+      MICROSOFT_REDIRECT_URI: ${MICROSOFT_REDIRECT_URI:-http://localhost:3001/auth/microsoft/callback}
       EMAIL_HOST: ${EMAIL_HOST}
       EMAIL_PORT: ${EMAIL_PORT:-587}
       EMAIL_USER: ${EMAIL_USER}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@classera.com}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - .:/app
       - /app/node_modules
-    command: sh -c "sleep 5 && npm run migrate && npm run dev"
+    command: sh -c "npm start"
 
 volumes:
   postgres_data_dev:

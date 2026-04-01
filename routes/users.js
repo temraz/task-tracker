@@ -31,6 +31,28 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
+// Distinct departments list (for dropdowns) - must be BEFORE /:id route
+router.get('/departments/list', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT dept FROM (
+        SELECT DISTINCT department AS dept
+        FROM users
+        WHERE department IS NOT NULL AND department <> ''
+        UNION
+        SELECT DISTINCT linked_department AS dept
+        FROM tasks
+        WHERE linked_department IS NOT NULL AND linked_department <> ''
+      ) AS u
+      ORDER BY dept ASC
+    `);
+    res.json({ departments: result.rows.map(r => r.dept) });
+  } catch (error) {
+    console.error('Error fetching departments:', error);
+    res.status(500).json({ error: 'Failed to fetch departments' });
+  }
+});
+
 // Get single user
 router.get('/:id', requireAuth, async (req, res) => {
   try {
@@ -295,16 +317,3 @@ router.post('/:id/resend-invitation', requireAuth, requireAdmin, async (req, res
 });
 
 export default router;
-
-// Additional helper route: distinct departments list
-router.get('/departments/list', requireAuth, async (req, res) => {
-  try {
-    const result = await pool.query(
-      "SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department <> '' ORDER BY department ASC"
-    );
-    res.json({ departments: result.rows.map(r => r.department) });
-  } catch (error) {
-    console.error('Error fetching departments:', error);
-    res.status(500).json({ error: 'Failed to fetch departments' });
-  }
-});

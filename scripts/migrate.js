@@ -9,55 +9,24 @@ const __dirname = path.dirname(__filename);
 async function migrate() {
   try {
     console.log('🔄 Running database migrations...');
-    
-    // 0) Bootstrap fix migration file (idempotent)
-    const bootstrapFixPath = path.join(__dirname, '../database/migration_bootstrap_fix.sql');
-    if (fs.existsSync(bootstrapFixPath)) {
-      const bootstrapFix = fs.readFileSync(bootstrapFixPath, 'utf8');
-      const bootstrapStatements = bootstrapFix
-        .split(';')
-        .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--'));
-      for (const statement of bootstrapStatements) {
-        try {
-          await pool.query(statement);
-        } catch (err) {
-          if (!err.message.includes('already exists')) {
-            console.error('Bootstrap fix warning:', err.message);
-          }
-        }
-      }
-    }
 
-    // Preflight: ensure critical columns exist before anything else
+    const schemaPath = path.join(__dirname, '../database/schema.sql');
+    const schema = fs.readFileSync(schemaPath, 'utf8');
+    
+    // Execute base schema in one go to preserve functions/triggers blocks
+    try {
+      await pool.query(schema);
+    } catch (error) {
+      console.error('Schema migration error:', error.message);
+    }
+    
+    // Ensure critical columns exist AFTER base schema creation
     try {
       await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255)");
       await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255) UNIQUE");
       await pool.query("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_okr BOOLEAN DEFAULT false");
     } catch (preErr) {
       console.error('Preflight migration warning:', preErr.message);
-    }
-
-    const schemaPath = path.join(__dirname, '../database/schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    
-    // Split by semicolons and execute each statement
-    const statements = schema
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
-    
-    for (const statement of statements) {
-      if (statement) {
-        try {
-          await pool.query(statement);
-        } catch (error) {
-          // Ignore "already exists" errors
-          if (!error.message.includes('already exists') && !error.code === '42P07') {
-            console.error('Migration error:', error.message);
-          }
-        }
-      }
     }
     
     // Run password migration
