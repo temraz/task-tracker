@@ -279,7 +279,7 @@ router.get('/excel', requireAuth, async (req, res) => {
     });
     allTasksSheet.getRow(1).height = 28;
     
-    const allHeaders = ["#", "Task", "Owner", "Category", "Priority", "Due Date", "Status", "Performance"];
+    const allHeaders = ["#", "Task", "Owner", "Category", "Linked Department", "Priority", "Due Date", "Status", "Performance", "OKR"];
     allHeaders.forEach((h, i) => {
       const cell = allTasksSheet.getCell(1, i + 1);
       cell.value = h;
@@ -317,10 +317,12 @@ router.get('/excel', requireAuth, async (req, res) => {
         [t.name, F(bg), { name: "Arial", color: { argb: NAVY }, size: 9, bold: true }, Al("left", "middle", true)],
         [owner?.name || "", F(bg), Ft(DGRAY, 9), Al("center")],
         [t.category || "", F(bg), Ft(DGRAY, 9), Al("left", "middle", true)],
+        [t.linked_department || "", F(bg), Ft(DGRAY, 9), Al("left", "middle", true)],
         [t.priority, F(pb), Ft(pf, 9, true), Al("center")],
         [t.due_date || "", isOv ? F(RBGC) : F(bg), isOv ? Ft(RED, 9, true) : Ft(DGRAY, 9), Al("center")],
         [t.status, F(sb), Ft(sf, 9, true), Al("center")],
-        [pl, F(pfb), Ft(pff, 9, true), Al("center")]
+        [pl, F(pfb), Ft(pff, 9, true), Al("center")],
+        [(t.is_okr === 1 || t.is_okr === true) ? "Yes" : "No", F(bg), Ft(DGRAY, 9, true), Al("center")]
       ];
       
       cells.forEach(([v, fill, font, align], ci) => {
@@ -352,7 +354,7 @@ router.get('/excel', requireAuth, async (req, res) => {
       ws.getRow(3).height = 24;
       
       // Owner header
-      ws.mergeCells("A1:H1");
+      ws.mergeCells("A1:J1");
       const ownerHeaderCell = ws.getCell("A1");
       ownerHeaderCell.value = `  ${u.name.toUpperCase()}`;
       ownerHeaderCell.fill = F(NAVY);
@@ -391,7 +393,7 @@ router.get('/excel', requireAuth, async (req, res) => {
       });
       
       // Task headers
-      ["#", "Task", "Category", "Priority", "Due Date", "Status", "Performance", "Notes"].forEach((h, i) => {
+      ["#", "Task", "Category", "Linked Department", "Priority", "Due Date", "Status", "Performance", "OKR", "Notes"].forEach((h, i) => {
         const c = ws.getCell(3, i + 1);
         c.value = h;
         c.fill = F(DARK);
@@ -415,10 +417,12 @@ router.get('/excel', requireAuth, async (req, res) => {
           [ri + 1, F(bg), Ft(DGRAY, 8), Al("center")],
           [t.name, F(bg), { name: "Arial", color: { argb: NAVY }, size: 9, bold: true }, Al("left", "middle", true)],
           [t.category || "", F(bg), Ft(DGRAY, 9), Al("left", "middle", true)],
+          [t.linked_department || "", F(bg), Ft(DGRAY, 9), Al("left", "middle", true)],
           [t.priority, F(pb), Ft(pf, 9, true), Al("center")],
           [t.due_date || "", isOv ? F(RBGC) : F(bg), isOv ? Ft(RED, 9, true) : Ft(DGRAY, 9), Al("center")],
           [t.status, F(sb), Ft(sf, 9, true), Al("center")],
           [pl, F(pfb), Ft(pff, 9, true), Al("center")],
+          [(t.is_okr === 1 || t.is_okr === true) ? "Yes" : "No", F(bg), Ft(DGRAY, 9, true), Al("center")],
           [t.notes || "", F(bg), Ft(DGRAY, 9), Al("left", "middle", true)]
         ];
         

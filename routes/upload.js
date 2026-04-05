@@ -49,12 +49,29 @@ router.post('/excel', requireAuth, upload.single('file'), async (req, res) => {
       return 'Medium';
     };
 
-    // Step 1: Build owners dynamically from column B
+    // Identify columns by header names (case-insensitive)
+    const header = rows[0].map(h => String(h || '').trim());
+    const idx = (name, aliases=[]) => {
+      const all = [name, ...aliases].map(s => s.toLowerCase());
+      return header.findIndex(h => all.includes(h.toLowerCase()));
+    };
+    const cName = idx('Task');
+    const cOwner = idx('Owner');
+    const cCategory = idx('Category');
+    const cPriority = idx('Priority');
+    const cDue = idx('Due Date', ['Due']);
+    const cStatus = idx('Status');
+    const cPerf = idx('Performance');
+    const cNotes = idx('Notes');
+    const cLinkedDept = idx('Linked Department', ['Linked Dept', 'Department Linked']);
+    const cOKR = idx('OKR', ['OKR Task', 'Is OKR']);
+    
+    // Step 1: Build owners dynamically from Owner column
     const ownerMap = {}; // name (lowercase) → owner object
     const ownerEmails = new Set();
     
     rows.slice(1).forEach((row) => {
-      const ownerName = String(row[1] || '').trim();
+      const ownerName = cOwner >= 0 ? String(row[cOwner] || '').trim() : '';
       if (ownerName && !ownerMap[ownerName.toLowerCase()]) {
         ownerMap[ownerName.toLowerCase()] = {
           name: ownerName,
@@ -100,29 +117,32 @@ router.post('/excel', requireAuth, upload.single('file'), async (req, res) => {
     for (const row of rows.slice(1)) {
       if (!row[0] && !row[1]) continue; // skip blank rows
       
-      const name = String(row[0] || '').trim();
+      const name = cName >= 0 ? String(row[cName] || '').trim() : '';
       if (!name) {
         skipped++;
         continue;
       }
 
-      const ownerName = String(row[1] || '').trim();
+      const ownerName = cOwner >= 0 ? String(row[cOwner] || '').trim() : '';
       const owner = ownerName ? createdOwners[ownerName.toLowerCase()] : null;
-      const category = String(row[2] || '').trim();
-      const priority = normPriority(row[3]);
+      const category = cCategory >= 0 ? String(row[cCategory] || '').trim() : '';
+      const priority = normPriority(cPriority >= 0 ? row[cPriority] : '');
 
       let due_date = null;
-      if (row[4]) {
-        const d = row[4] instanceof Date ? row[4] : new Date(row[4]);
+      if (cDue >= 0 && row[cDue]) {
+        const d = row[cDue] instanceof Date ? row[cDue] : new Date(row[cDue]);
         if (!isNaN(d.getTime())) {
           due_date = d.toISOString().split('T')[0];
         }
       }
 
-      const status = normStatus(row[5]);
-      const perfRaw = String(row[6] || '').trim().toLowerCase();
+      const status = normStatus(cStatus >= 0 ? row[cStatus] : '');
+      const perfRaw = String((cPerf >= 0 ? row[cPerf] : '') || '').trim().toLowerCase();
       const performance = PERF_MAP[perfRaw] || null;
-      const notes = String(row[7] || '').trim() || null;
+      const notes = cNotes >= 0 ? (String(row[cNotes] || '').trim() || null) : null;
+      const linked_department = cLinkedDept >= 0 ? (String(row[cLinkedDept] || '').trim() || null) : null;
+      const okrRaw = cOKR >= 0 ? String(row[cOKR] || '').trim().toLowerCase() : '';
+      const is_okr = (okrRaw === 'yes' || okrRaw === 'true' || okrRaw === '1') ? 1 : 0;
 
       try {
         // Check if task already exists (same name, owner, and quarter)
@@ -140,17 +160,17 @@ router.post('/excel', requireAuth, upload.single('file'), async (req, res) => {
           const updateResult = await pool.query(
             `UPDATE tasks 
              SET category = $1, priority = $2, due_date = $3, status = $4, 
-                 performance = $5, notes = $6, updated_at = CURRENT_TIMESTAMP
-             WHERE id = $7
+                 performance = $5, notes = $6, linked_department = $7, is_okr = $8, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $9
              RETURNING *`,
-            [category || null, priority, due_date, status, performance, notes, taskId]
+            [category || null, priority, due_date, status, performance, notes, linked_department, is_okr, taskId]
           );
           updatedTasks.push(updateResult.rows[0]);
         } else {
           // Create new task
           const taskResult = await pool.query(
-            `INSERT INTO tasks (quarter_id, owner_id, name, category, priority, due_date, status, performance, notes, created_by)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            `INSERT INTO tasks (quarter_id, owner_id, name, category, priority, due_date, status, performance, notes, created_by, linked_department, is_okr)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
              RETURNING *`,
             [
               quarter_id,
@@ -162,7 +182,9 @@ router.post('/excel', requireAuth, upload.single('file'), async (req, res) => {
               status,
               performance,
               notes,
-              req.session.user?.id || null
+              req.session.user?.id || null,
+              linked_department,
+              is_okr
             ]
           );
           newTasks.push(taskResult.rows[0]);
