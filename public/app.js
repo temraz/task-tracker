@@ -6,6 +6,8 @@ const DEPARTMENTS = ["R&D", "Product", "Marketing", "Sales", "Partner Success", 
 const AVATAR_COLORS = ["#1B2A4A","#2E7D52","#1E5799","#7B241C","#6B46C1","#065F46","#92400E","#1E40AF","#7C3AED","#0F766E","#9D174D","#1D4ED8","#047857","#B45309","#374151"];
 const STATUS_KEYS = ["Not Started","In Progress","Completed"];
 const PRIORITY_CFG = {"Critical":{bg:"#F3E8FF",text:"#6B21A8",border:"#9333EA"},"High":{bg:"#FDECEA",text:"#7B241C",border:"#E74C3C"},"Medium":{bg:"#FEF3C7",text:"#7D4E00",border:"#F59E0B"},"Low":{bg:"#E8F8F5",text:"#1E8449",border:"#2ECC71"}};
+/** Stable reference so selecting "all quarters" does not churn effects unnecessarily */
+const ALL_QUARTERS_SELECTION = Object.freeze({ id: 'all', name: 'All Quarters' });
 
 // API Helper
 const apiCall = async (endpoint, options = {}) => {
@@ -139,12 +141,12 @@ function App() {
     loadData();
   }, []);
 
-  // Load tasks when quarter changes
+  // Load tasks when quarter or filters change, or when returning to a task view (e.g. dashboard after admin pages)
   useEffect(() => {
     if (selectedQuarter) {
       loadTasks();
     }
-  }, [selectedQuarter, filterStatus, filterPriority, filterCategory, filterLinkedDept, filterPerformance, filterDue, filterOwner, filterOKR, searchQ]);
+  }, [selectedQuarter, view, filterStatus, filterPriority, filterCategory, filterLinkedDept, filterPerformance, filterDue, filterOwner, filterOKR, searchQ]);
 
   // Load all users when admin views users page
   useEffect(() => {
@@ -189,6 +191,9 @@ function App() {
     if (urlStatus && urlStatus !== filterStatus) {
       setFilterStatus(urlStatus);
     }
+    if (urlView === 'dashboard' && !urlOwner) {
+      setSelectedQuarter(ALL_QUARTERS_SELECTION);
+    }
   }, [user]); // Only run when user is loaded
 
   // Handle browser back/forward buttons
@@ -209,6 +214,9 @@ function App() {
         setFilterStatus(urlStatus);
       } else {
         setFilterStatus("All");
+      }
+      if (urlView === 'dashboard' && !urlOwner) {
+        setSelectedQuarter(ALL_QUARTERS_SELECTION);
       }
     };
     
@@ -313,23 +321,17 @@ function App() {
         const quartersList = quartersRes.quarters || [];
         setQuarters(quartersList);
 
-        // Load current quarter
+        // Load current quarter (for "current" badges); default task scope is all quarters
         if (quartersList.length > 0) {
           try {
             const currentRes = await apiCall('/quarters/current');
             if (currentRes.quarter) {
               setCurrentQuarter(currentRes.quarter);
-              setSelectedQuarter(currentRes.quarter);
-            } else if (quartersList.length > 0) {
-              // If no current quarter, select the first one
-              setSelectedQuarter(quartersList[0]);
             }
+            setSelectedQuarter(ALL_QUARTERS_SELECTION);
           } catch (err) {
             console.error('Error loading current quarter:', err);
-            // Fallback to first quarter
-            if (quartersList.length > 0) {
-              setSelectedQuarter(quartersList[0]);
-            }
+            setSelectedQuarter(ALL_QUARTERS_SELECTION);
           }
         }
       } catch (err) {
@@ -1099,6 +1101,9 @@ function App() {
   const navTo = (v,oid=null,statusFilter=null) => {
     setView(v);
     setSelectedOwner(oid);
+    if (v === 'dashboard' && (oid == null || oid === undefined)) {
+      setSelectedQuarter(ALL_QUARTERS_SELECTION);
+    }
     setFilterStatus(statusFilter || "All");
     setFilterPriority("All");
     setFilterCategory("All");
@@ -1353,7 +1358,7 @@ function App() {
           {selectedQuarter && !isMobile && (
             <select value={selectedQuarter.id} onChange={e=>{
               if (e.target.value === 'all') {
-                setSelectedQuarter({id: 'all', name: 'All Quarters'});
+                setSelectedQuarter(ALL_QUARTERS_SELECTION);
               } else {
                 const q = quarters.find(q=>q.id===parseInt(e.target.value));
                 if (q) setSelectedQuarter(q);
@@ -1747,7 +1752,7 @@ function App() {
               <div style={{width:"100%",maxWidth:800}}>
                 <div style={{fontSize:12,fontWeight:700,color:"#4A5568",textTransform:"uppercase",marginBottom:16,textAlign:"center"}}>Select Quarter</div>
                 <div style={{display:"grid",gridTemplateColumns:isMobile ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))",gap:isMobile ? 12 : 16,marginBottom:32}}>
-                  <div onClick={()=>setSelectedQuarter({id: 'all', name: 'All Quarters'})} 
+                  <div onClick={()=>setSelectedQuarter(ALL_QUARTERS_SELECTION)} 
                     style={{
                       background:"#1B2A4A",
                       border:"2px solid #C9A84C",
@@ -2098,7 +2103,7 @@ function App() {
                 <div style={{fontSize:isMobile ? 10 : 11,fontWeight:700,color:"#4A5568",textTransform:"uppercase",marginBottom:8}}>Quarter</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                   <button 
-                    onClick={()=>setSelectedQuarter({id: 'all', name: 'All Quarters'})}
+                    onClick={()=>setSelectedQuarter(ALL_QUARTERS_SELECTION)}
                     style={{
                       background:selectedQuarter && selectedQuarter.id === 'all' ? "#1B2A4A" : "white",
                       color:selectedQuarter && selectedQuarter.id === 'all' ? "#C9A84C" : "#1B2A4A",
